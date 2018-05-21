@@ -1,6 +1,7 @@
 ﻿using HelixToolkit.Wpf;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -35,7 +36,7 @@ namespace WpfApp1
 
         private void Render()
         {
-            var data = GenerateInitialPoints(2, 2, 2);
+            var data = GenerateInitialPoints(2, 1, 2);
             GenerateAndAddShapeToCollection(data.Vertexes, data.EdgesData, Brushes.Blue, MainViewPort.Children);
         }
 
@@ -49,38 +50,51 @@ namespace WpfApp1
 
             var points = new Point3D[cxyz + ce];
             var edgesData = new int[ce * 4];
-            Func<int, int, int, int> calcIndex = (int x, int y, int z) => x + cx * (y + cy * z);
+            //Func<int, int, int, int> calcIndex = (int x, int y, int z) => x + cx * (y + cy * z);
 
-            int ic = 0;
-            for (int ix = 0; ix < cx; ++ix)
+            //int ic = 0;
+            int i = -1;
+            for (int iz = 0; iz < cz * 2 - 1; ++iz)
             {
-                for (int iy = 0; iy < cy; ++iy)
+                for (int iy = 0; iy < cy * 2 - 1; ++iy)
                 {
-                    for (int iz = 0; iz < cz; ++iz)
+                    for (int ix = 0; ix < cx * 2 - 1; ++ix)
                     {
-                        int i = calcIndex(ix, iy, iz);
-                        points[i] = new Point3D(ix, iy, iz);
+                        //int i = calcIndex(ix, iy, iz);
 
-                        if (iz > 0)
+                        int count = ix % 2 + iy % 2 + iz % 2;
+                        if (count <= 1)
                         {
-                            points[cxyz + ic] = new Point3D(ix, iy, iz - 0.5);
-                            int iprev = calcIndex(ix, iy, iz - 1);
-                            FillEdgesData(cxyz, i, iprev, ref ic, edgesData);
+                            //Debug.WriteLine(new Point3D(ix / 2.0, iy / 2.0, iz / 2.0));
+                            points[++i] = new Point3D(ix / 2.0, iy / 2.0, iz / 2.0);
                         }
-                        if (iy > 0)
-                        {
-                            points[cxyz + ic] = new Point3D(ix, iy - 0.5, iz);
-                            int iprev = calcIndex(ix, iy - 1, iz);
-                            FillEdgesData(cxyz, i, iprev, ref ic, edgesData);
-                        }
-                        if (ix > 0)
-                        {
-                            points[cxyz + ic] = new Point3D(ix - 0.5, iy, iz);
-                            int iprev = calcIndex(ix - 1, iy, iz);
-                            FillEdgesData(cxyz, i, iprev, ref ic, edgesData);
-                        }
+                        //if (ix > 0)
+                        //{
+                        //    points[++i] = new Point3D(ix - 0.5, iy, iz);
+                        //    //int iprev = calcIndex(ix - 1, iy, iz);
+                        //    //FillEdgesData(cxyz, i, iprev, ref ic, edgesData);
+                        //}
+                        //if (iy > 0)
+                        //{
+                        //    points[++i] = new Point3D(ix, iy - 0.5, iz);
+                        //    //int iprev = calcIndex(ix, iy - 1, iz);
+                        //    //FillEdgesData(cxyz, i, iprev, ref ic, edgesData);
+                        //}
+                        //if (iz > 0)
+                        //{
+                        //    points[++i] = new Point3D(ix, iy, iz - 0.5);
+                        //    //int iprev = calcIndex(ix, iy, iz - 1);
+                        //    //FillEdgesData(cxyz, i, iprev, ref ic, edgesData);
+                        //}
+
                     }
                 }
+            }
+
+            Debug.WriteLine("Initial points: ");
+            foreach (var p in points)
+            {
+                Debug.WriteLine(p);
             }
 
             return new GridData()
@@ -108,11 +122,11 @@ namespace WpfApp1
             }
 
             // add all lines (edges)
-            for (int i = 0; i < pointIndexes.Length; i += 2)
-            {
-                var line = CreateLine(points[pointIndexes[i]], points[pointIndexes[i + 1]]);
-                collection.Add(line);
-            }
+            //for (int i = 0; i < pointIndexes.Length; i += 2)
+            //{
+            //    var line = CreateLine(points[pointIndexes[i]], points[pointIndexes[i + 1]]);
+            //    collection.Add(line);
+            //}
         }
 
         private PipeVisual3D CreateLine(Point3D start, Point3D end)
