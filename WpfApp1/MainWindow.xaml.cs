@@ -1,20 +1,9 @@
 ﻿using HelixToolkit.Wpf;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace WpfApp1
 {
@@ -49,27 +38,7 @@ namespace WpfApp1
             var ZU = CalculateZU(nx, ny, nz);
             var ZP = CalculateZP(nx, ny, nz);
         }
-
-        //private int[,] CalculateNT(int nel, Point3D[] points)
-        //{
-        //    var result = new int[FEPointsCount, nel];
-
-        //    //for (int i = 0; i < points.Length; ++i)
-        //    //{
-        //    //    var p = points[i];
-        //    //}
-            
-        //    //for (int j = 0; j < nel; ++j)
-        //    //{
-        //    //    for (int i = 0; i < FEPointsCount; ++i)
-        //    //    {
-        //    //        result[i, j] = points
-        //    //    }
-        //    //}
-
-        //    return result;
-        //}
-
+        
         private void Render(Point3D[] points)
         {
             // TODO: add edges
@@ -85,7 +54,6 @@ namespace WpfApp1
             int ce = (cx * nz + nx * cz) * cy + ny * cx * cz; // edges count
 
             var points = new Point3D[cxyz + ce];
-            var edgesData = new int[ce * 4];
 
             int i = 0;
             for (int iz = 0; iz < cz * 2 - 1; ++iz)
@@ -154,14 +122,6 @@ namespace WpfApp1
             return ZP;
         }
 
-        //private void FillEdgesData(int cxyz, int i, int iprev, ref int ic, int[] edgesData)
-        //{
-        //    edgesData[ic * 4] = iprev;
-        //    edgesData[ic * 4 + 1] = edgesData[ic * 4 + 2] = cxyz + ic;
-        //    edgesData[ic * 4 + 3] = i;
-        //    ++ic;
-        //}
-
         private void GenerateAndAddShapeToCollection(Point3D[] points, int[] pointIndexes, Brush vertColor, Visual3DCollection collection)
         {
             // add all points (vertices)
@@ -171,6 +131,7 @@ namespace WpfApp1
                 collection.Add(vert);
             }
 
+            // TODO: add lines
             // add all lines (edges)
             //for (int i = 0; i < pointIndexes.Length; i += 2)
             //{
