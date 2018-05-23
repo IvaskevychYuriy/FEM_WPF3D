@@ -103,11 +103,13 @@ namespace WpfApp1
                 }
             }
 
-            Debug.WriteLine("Initial points: ");
+#if DEBUG
+            Debug.WriteLine("Initial points (AKT): ");
             foreach (var p in points)
             {
                 Debug.WriteLine(p);
             }
+#endif
 
             return points;
         }
@@ -117,6 +119,12 @@ namespace WpfApp1
             // basically fixed points are just points on bottom (X-Y) plane, so the global coords are sequential
             int nzu = (nx * 2 + 1) * (ny + 1) + (nx + 1) * ny;
             var ZU = Enumerable.Range(0, nzu).ToArray();
+
+#if DEBUG
+            Debug.WriteLine("ZU: ");
+            Debug.WriteLine(string.Join("; ", ZU));
+#endif
+
             return ZU;
         }
 
@@ -134,6 +142,14 @@ namespace WpfApp1
                 ZP[i, 1] = 5;                                       // 5 is top most (6th) plane of 1x1 cube
                 ZP[i, 2] = 1;                                       // force applied
             }
+
+#if DEBUG
+            Debug.WriteLine("ZP: ");
+            for (int i = 0; i < nep; i++)
+            {
+                Debug.WriteLine($"{ZP[i, 0]}  {ZP[i, 1]}  {ZP[i, 2]}");
+            }
+#endif
 
             return ZP;
         }
