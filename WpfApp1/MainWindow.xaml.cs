@@ -28,19 +28,55 @@ namespace WpfApp1
         private readonly Brush LineFill = Brushes.LightGray;
         private const double VertRadius = 0.1;
 
+        private const int FEPointsCount = 20;
+
         public MainWindow()
         {
             InitializeComponent();
-            Render();
+         
+            const int nx = 2;
+            const int ny = 1;
+            const int nz = 2;
+
+            // initial points array
+            var AKT = CalculateAKT(nx, ny, nz);
+            Render(AKT);
+
+            // TODO: calculate NT
+            // var NT = ...
+
+            // fixed points global coords (ZU) and force info (ZP)
+            var ZU = CalculateZU(nx, ny, nz);
+            var ZP = CalculateZP(nx, ny, nz);
         }
 
-        private void Render()
+        //private int[,] CalculateNT(int nel, Point3D[] points)
+        //{
+        //    var result = new int[FEPointsCount, nel];
+
+        //    //for (int i = 0; i < points.Length; ++i)
+        //    //{
+        //    //    var p = points[i];
+        //    //}
+            
+        //    //for (int j = 0; j < nel; ++j)
+        //    //{
+        //    //    for (int i = 0; i < FEPointsCount; ++i)
+        //    //    {
+        //    //        result[i, j] = points
+        //    //    }
+        //    //}
+
+        //    return result;
+        //}
+
+        private void Render(Point3D[] points)
         {
-            var data = GenerateInitialPoints(2, 1, 2);
-            GenerateAndAddShapeToCollection(data.Vertexes, data.EdgesData, Brushes.Blue, MainViewPort.Children);
+            // TODO: add edges
+            GenerateAndAddShapeToCollection(points, new int[] { }, Brushes.Blue, MainViewPort.Children);
         }
 
-        private GridData GenerateInitialPoints(int nx, int ny, int nz)
+        private Point3D[] CalculateAKT(int nx, int ny, int nz)
         {
             int cx = nx + 1;
             int cy = ny + 1;
@@ -50,43 +86,19 @@ namespace WpfApp1
 
             var points = new Point3D[cxyz + ce];
             var edgesData = new int[ce * 4];
-            //Func<int, int, int, int> calcIndex = (int x, int y, int z) => x + cx * (y + cy * z);
 
-            //int ic = 0;
-            int i = -1;
+            int i = 0;
             for (int iz = 0; iz < cz * 2 - 1; ++iz)
             {
                 for (int iy = 0; iy < cy * 2 - 1; ++iy)
                 {
                     for (int ix = 0; ix < cx * 2 - 1; ++ix)
                     {
-                        //int i = calcIndex(ix, iy, iz);
-
                         int count = ix % 2 + iy % 2 + iz % 2;
                         if (count <= 1)
                         {
-                            //Debug.WriteLine(new Point3D(ix / 2.0, iy / 2.0, iz / 2.0));
-                            points[++i] = new Point3D(ix / 2.0, iy / 2.0, iz / 2.0);
+                            points[i++] = new Point3D(ix / 2.0, iy / 2.0, iz / 2.0);
                         }
-                        //if (ix > 0)
-                        //{
-                        //    points[++i] = new Point3D(ix - 0.5, iy, iz);
-                        //    //int iprev = calcIndex(ix - 1, iy, iz);
-                        //    //FillEdgesData(cxyz, i, iprev, ref ic, edgesData);
-                        //}
-                        //if (iy > 0)
-                        //{
-                        //    points[++i] = new Point3D(ix, iy - 0.5, iz);
-                        //    //int iprev = calcIndex(ix, iy - 1, iz);
-                        //    //FillEdgesData(cxyz, i, iprev, ref ic, edgesData);
-                        //}
-                        //if (iz > 0)
-                        //{
-                        //    points[++i] = new Point3D(ix, iy, iz - 0.5);
-                        //    //int iprev = calcIndex(ix, iy, iz - 1);
-                        //    //FillEdgesData(cxyz, i, iprev, ref ic, edgesData);
-                        //}
-
                     }
                 }
             }
@@ -97,20 +109,42 @@ namespace WpfApp1
                 Debug.WriteLine(p);
             }
 
-            return new GridData()
-            {
-                Vertexes = points,
-                EdgesData = edgesData
-            };
+            return points;
         }
-        
-        private void FillEdgesData(int cxyz, int i, int iprev, ref int ic, int[] edgesData)
+
+        private int[] CalculateZU(int nx, int ny, int nz)
         {
-            edgesData[ic * 4] = iprev;
-            edgesData[ic * 4 + 1] = edgesData[ic * 4 + 2] = cxyz + ic;
-            edgesData[ic * 4 + 3] = i;
-            ++ic;
+            // basically fixed points are just points on bottom (X-Y) plane, so the global coords are sequential
+            int nzu = (nx * 2 + 1) * (ny + 1) + (nx + 1) * ny;
+            var ZU = Enumerable.Range(0, nzu).ToArray();
+            return ZU;
         }
+
+        private int[,] CalculateZP(int nx, int ny, int nz)
+        {
+            // force is applied straight down at each vertext on the top plane
+            int nep = (nx * 2 + 1) * (ny + 1) + (nx + 1) * ny;      // count of vertices on the top plane
+            var ZP = new int[nep, 3];
+
+            int totalVertexCount = ((nx * 2 + 1) + (nx + 1) * ny) * (nz + 1) + (nx + 1) * (ny + 1) * nz;
+            int startPoint = totalVertexCount - nep;
+            for (int i = 0; i < nep; i++)
+            {
+                ZP[i, 0] = startPoint + i;
+                ZP[i, 1] = 5;                                       // 5 is top most (6th) plane of 1x1 cube
+                ZP[i, 2] = 1;                                       // force applied
+            }
+
+            return ZP;
+        }
+
+        //private void FillEdgesData(int cxyz, int i, int iprev, ref int ic, int[] edgesData)
+        //{
+        //    edgesData[ic * 4] = iprev;
+        //    edgesData[ic * 4 + 1] = edgesData[ic * 4 + 2] = cxyz + ic;
+        //    edgesData[ic * 4 + 3] = i;
+        //    ++ic;
+        //}
 
         private void GenerateAndAddShapeToCollection(Point3D[] points, int[] pointIndexes, Brush vertColor, Visual3DCollection collection)
         {
@@ -152,11 +186,5 @@ namespace WpfApp1
 
             return vert;
         }
-    }
-
-    internal class GridData
-    {
-        public Point3D[] Vertexes { get; set; }
-        public int[] EdgesData { get; set; }
     }
 }
