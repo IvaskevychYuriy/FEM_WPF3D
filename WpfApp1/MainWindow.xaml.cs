@@ -44,7 +44,7 @@ namespace WpfApp1
 
             var DFIABG = GenerateDFIABG();
 
-            ProcessElements(nx, ny, nz, AKT, NT);
+            ProcessElements(nx, ny, nz, AKT, NT, DFIABG);
         }
 
         private void Render(Point3D[] points)
@@ -157,7 +157,7 @@ namespace WpfApp1
                 {
                     for (int cz = 0; cz < 3; ++cz)
                     {
-                        gaussPoints[c++] = new Point3D(-1.0 + cx * 0.5, -1.0 + cy * 0.5, -1.0 + cz * 0.5);
+                        gaussPoints[c++] = new Point3D(-1.0 + cx * 1.0, -1.0 + cy * 1.0, -1.0 + cz * 1.0);
                     }
                 }
             }
@@ -229,15 +229,15 @@ namespace WpfApp1
             return result;
         }
         
-        private void ProcessElements(int nx, int ny, int nz, Point3D[] AKT, int[,] NT)
+        private void ProcessElements(int nx, int ny, int nz, Point3D[] AKT, int[,] NT, double[,,] DFIABG)
         {
             int ce = nx * ny * nz;
             for (int i = 0; i < ce; ++i)
             {
                 var DFIXYZ = CalculateDFIXYZ(i, AKT, NT);
-
-                // TODO: add DXYZABG
-                // TODO: add DJ
+                var DXYZABG = CalculateDXYZABG(i, AKT, NT, DFIABG);
+                var DJ = CalculateDJ(DXYZABG);
+                
                 // TODO: add MGE
 
                 // TODO: update MG and F - ????
@@ -275,6 +275,88 @@ namespace WpfApp1
                         Debug.WriteLine(result[cg, i, d]);
                     }
                 }
+            }
+#endif
+
+            return result;
+        }
+
+
+        private double[,,] CalculateDXYZABG(int feIndex, Point3D[] AKT, int[,] NT, double[,,] DFIABG)
+        {
+            var gaussPoints = GenerateGaussPoints();
+
+            Func<Point3D, double>[] globalValuesGetters =
+            {
+                p => p.X,
+                p => p.Y,
+                p => p.Z
+            };
+
+            // calculate DXYZABG itself
+            var result = new double[3, 3, 27];
+            for (int gd = 0; gd < 3; ++gd)                 // global coord
+            {
+                var p = gaussPoints[gd];
+                for (int ld = 0; ld < 3; ++ld)             // local coord
+                {
+                    for (int cg = 0; cg < 27; ++cg)        // gauss points
+                    {
+                        var getter = globalValuesGetters[gd];
+                        double localSum = 0.0;
+                        for (int i = 0; i < 20; ++i)       // functions
+                        {
+                            var pi = AKT[NT[i, feIndex]];  // global point
+                            double piValue = getter(pi);   // value of global coordinate
+                            double dphi = DFIABG[i, ld, cg];
+                            localSum += piValue * dphi;
+                        }
+
+                        result[gd, ld, cg] = localSum;
+                    }
+                }
+            }
+
+#if DEBUG
+            Debug.WriteLine($"DXYZABG (feIndex = {feIndex}): ");
+            for (int gd = 0; gd < 3; ++gd)
+            {
+                for (int ld = 0; ld < 3; ++ld)
+                {
+                    for (int cg = 0; cg < 27; ++cg)
+                    {
+                        Debug.WriteLine(result[gd, cg, ld]);
+                    }
+                }
+            }
+#endif
+
+            return result;
+        }
+
+        private double Matrix3by3Det(double a11, double a12, double a13
+                                   , double a21, double a22, double a23
+                                   , double a31, double a32, double a33)
+        {
+            return a11 * a22 * a33 + a12 * a23 * a31 + a13 * a21 * a32
+                 - a13 * a22 * a31 - a23 * a32 * a11 - a33 * a12 * a21;
+        }
+
+        private double[] CalculateDJ(double[,,] DXYZABG)
+        {
+            var result = new double[27];            // length == count of gaussian points
+            for (int cg = 0; cg < 27; ++cg)         // gaussian points
+            {
+                result[cg] = Matrix3by3Det(DXYZABG[0, 0, cg], DXYZABG[1, 0, cg], DXYZABG[2, 0, cg]
+                                         , DXYZABG[0, 1, cg], DXYZABG[1, 1, cg], DXYZABG[2, 1, cg]
+                                         , DXYZABG[0, 2, cg], DXYZABG[1, 2, cg], DXYZABG[2, 2, cg]);
+            }
+            
+#if DEBUG
+            Debug.WriteLine($"DJ: ");
+            for (int cg = 0; cg < 27; ++cg)
+            {
+                Debug.WriteLine(result[cg]);
             }
 #endif
 
