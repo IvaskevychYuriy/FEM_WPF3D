@@ -237,8 +237,7 @@ namespace WpfApp1
                 var DFIXYZ = CalculateDFIXYZ(i, AKT, NT);
                 var DXYZABG = CalculateDXYZABG(i, AKT, NT, DFIABG);
                 var DJ = CalculateDJ(DXYZABG);
-                
-                // TODO: add MGE
+                var MGE = CalculateMGE(DFIXYZ, DJ);
 
                 // TODO: update MG and F - ????
             }
@@ -308,7 +307,7 @@ namespace WpfApp1
                         {
                             var pi = AKT[NT[i, feIndex]];  // global point
                             double piValue = getter(pi);   // value of global coordinate
-                            double dphi = DFIABG[i, ld, cg];
+                            double dphi = DFIABG[cg, ld, i];
                             localSum += piValue * dphi;
                         }
 
@@ -325,7 +324,7 @@ namespace WpfApp1
                 {
                     for (int cg = 0; cg < 27; ++cg)
                     {
-                        Debug.WriteLine(result[gd, cg, ld]);
+                        Debug.WriteLine(result[gd, ld, cg]);
                     }
                 }
             }
@@ -357,6 +356,75 @@ namespace WpfApp1
             for (int cg = 0; cg < 27; ++cg)
             {
                 Debug.WriteLine(result[cg]);
+            }
+#endif
+
+            return result;
+        }
+
+        private double[,] CalculateMGE(double[,,] DFIXYZ, double[] DJ)
+        {
+            var Cs = new double[] { 5.0 / 9.0, 8.0 / 9.0, 5.0 / 9.0 };
+            Func<int, int, int, double>[,] As =
+            {
+                {
+                    (int i, int j, int cg) => l * (1.0 - v * DFIXYZ[cg, i, 0] * DFIXYZ[cg, j, 0]) + m * (DFIXYZ[cg, i, 1] * DFIXYZ[cg, j, 1] + DFIXYZ[cg, i, 2] * DFIXYZ[cg, j, 2]),
+                    (int i, int j, int cg) => l * v * DFIXYZ[cg, i, 0] * DFIXYZ[cg, j, 1] + m * DFIXYZ[cg, i, 1] * DFIXYZ[cg, j, 0],
+                    (int i, int j, int cg) => l * v * DFIXYZ[cg, i, 0] * DFIXYZ[cg, j, 2] + m * DFIXYZ[cg, i, 2] * DFIXYZ[cg, j, 0]
+                },
+                {
+                    null,
+                    (int i, int j, int cg) => l * (1.0 - v * DFIXYZ[cg, i, 1] * DFIXYZ[cg, j, 1]) + m * (DFIXYZ[cg, i, 0] * DFIXYZ[cg, j, 0] + DFIXYZ[cg, i, 2] * DFIXYZ[cg, j, 2]),
+                    (int i, int j, int cg) => l * v * DFIXYZ[cg, i, 1] * DFIXYZ[cg, j, 2] + m * DFIXYZ[cg, i, 2] * DFIXYZ[cg, j, 1]
+                },
+                {
+                    null,
+                    null,
+                    (int i, int j, int cg) => l * (1.0 - v * DFIXYZ[cg, i, 2] * DFIXYZ[cg, j, 2]) + m * (DFIXYZ[cg, i, 0] * DFIXYZ[cg, j, 0] + DFIXYZ[cg, i, 1] * DFIXYZ[cg, j, 1])
+                }
+            };
+            As[1, 0] = As[0, 1];
+            As[2, 0] = As[0, 2];
+            As[2, 1] = As[1, 2];
+
+            var result = new double[60, 60];
+            for (int ai = 0; ai < 3; ++ai)
+            {
+                for (int aj = 0; aj < 3; ++aj)
+                {
+                    var a = As[ai, aj];
+                    for (int i = 0; i < 20; ++i)
+                    {
+                        for (int j = 0; j < 20; ++j)
+                        {
+                            int cg = 0;
+                            double res = 0.0;
+                            for (int m = 0; m < 3; ++m)
+                            {
+                                for (int n = 0; n < 3; ++n)
+                                {
+                                    for (int k = 0; k < 3; ++k)
+                                    {
+                                        res += Cs[m] * Cs[n] * Cs[k] * a(i, j, cg) * DJ[cg];
+                                        ++cg;
+                                    }
+                                }
+                            }
+
+                            result[ai * 20 + i, aj * 20 + j] = res;
+                        }
+                    }
+                }
+            }
+
+#if DEBUG
+            Debug.WriteLine($"MGE: ");
+            for (int i = 0; i < 60; ++i)
+            {
+                for (int j = 0; j < 60; ++j)
+                {
+                    Debug.WriteLine(result[i, j]);
+                }
             }
 #endif
 
