@@ -44,7 +44,10 @@ namespace WpfApp1
 
             var DFIABG = GenerateDFIABG();
 
-            ProcessElements(nx, ny, nz, AKT, NT, DFIABG);
+            // TODO: calculate DPSITE
+            var DPSITE = new double[9, 2, 8];
+
+            var (MG, F) = ProcessElements(nx, ny, nz, AKT, NT, DFIABG, DPSITE);
         }
 
         private void Render(Point3D[] points)
@@ -229,17 +232,65 @@ namespace WpfApp1
             return result;
         }
         
-        private void ProcessElements(int nx, int ny, int nz, Point3D[] AKT, int[,] NT, double[,,] DFIABG)
+        private (double[,], double[]) ProcessElements(int nx, int ny, int nz, Point3D[] AKT, int[,] NT, double[,,] DFIABG, double[,,] DPSITE)
         {
+            int npq = AKT.Length;
+            var MG = new double[3 * npq, 3 * npq];
+            var F = new double[3 * npq];
+
             int ce = nx * ny * nz;
             for (int i = 0; i < ce; ++i)
             {
+#if DEBUG
+                Debug.WriteLine($"Processing element #{i}");
+#endif
+
                 var DFIXYZ = CalculateDFIXYZ(i, AKT, NT);
                 var DXYZABG = CalculateDXYZABG(i, AKT, NT, DFIABG);
                 var DJ = CalculateDJ(DXYZABG);
                 var MGE = CalculateMGE(DFIXYZ, DJ);
+                var FE = CalculateFE(DPSITE);
 
-                // TODO: update MG and F - ????
+                UpdateMGF(MG, F, MGE, FE, NT, i);
+            }
+
+#if DEBUG
+            Debug.WriteLine($"MG: ");
+            for (int i = 0; i < 3 * npq; ++i)
+            {
+                for (int j = 0; j < 3 * npq; ++j)
+                {
+                    Debug.Write(MG[i, j] + " ");
+                }
+
+                Debug.WriteLine(string.Empty);
+            }
+
+            Debug.WriteLine($"F: ");
+            for (int i = 0; i < 3 * npq; ++i)
+            {
+                Debug.WriteLine(F[i]);
+            }
+#endif
+
+            return (MG, F);
+        }
+
+        private void UpdateMGF(double[,] MG, double[] F, double[,] MGE, double[] FE, int[,] NT, int feIndex)
+        {
+            for (int i = 0; i < 60; ++i)
+            {
+                int di = i / 20;                    // dimension (x,y or z ) for row
+                int gi = NT[i % 20, feIndex];       // global index for row
+                for (int j = 0; j < 60; ++j)
+                {
+                    int dj = j / 20;                // dimension (x,y or z ) for col
+                    int gj = NT[j % 20, feIndex];   // global index for col
+
+                    MG[3 * gi + di, 3 * gj + dj] = MGE[i, j];
+                }
+
+                F[3 * gi + di] = FE[i];
             }
         }
 
@@ -425,6 +476,23 @@ namespace WpfApp1
                 {
                     Debug.WriteLine(result[i, j]);
                 }
+            }
+#endif
+
+            return result;
+        }
+        
+        // TODO: calculate FE
+        private double[] CalculateFE(double[,,] DPSITE)
+        {
+            var result = new double[60];
+            
+
+#if DEBUG
+            Debug.WriteLine($"FE: ");
+            for (int i = 0; i < 60; ++i)
+            {
+                Debug.WriteLine(result[i]);
             }
 #endif
 
