@@ -24,7 +24,7 @@ namespace WpfApp1
         private const double l = E / ((1 + v) * (1 - 2 * v));
         private const double m = E / (2 * (1 + v));
 
-        private readonly double LargeCoefficient = Math.Pow(10, 50);
+        private readonly double LargeCoefficient = Math.Pow(10, 20);
 
         public MainWindow()
         {
@@ -51,8 +51,8 @@ namespace WpfApp1
 
             var DFIABG = GenerateDFIABG();
             var DPSITE = GenerateDPSITE.Generate();
-
-            var (MG, F) = ProcessElements(nx, ny, nz, AKT, NT, DFIABG, DPSITE);
+            
+            var (MG, F) = ProcessElements(nx, ny, nz, AKT, NT, DFIABG, DPSITE, ZP);
             FixMG(MG, ZU);
 
             var U = GaussianElimination(MG, F);
@@ -199,7 +199,7 @@ namespace WpfApp1
             return result;
         }
         
-        private (double[,], double[]) ProcessElements(int nx, int ny, int nz, Point3D[] AKT, int[,] NT, double[,,] DFIABG, double[,,] DPSITE)
+        private (double[,], double[]) ProcessElements(int nx, int ny, int nz, Point3D[] AKT, int[,] NT, double[,,] DFIABG, double[,,] DPSITE, int[,] ZP)
         {
             int npq = AKT.Length;
             var MG = new double[3 * npq, 3 * npq];
@@ -216,7 +216,7 @@ namespace WpfApp1
                 var DXYZABG = CalculateDXYZABG(i, AKT, NT, DFIABG);
                 var DJ = CalculateDJ(DXYZABG);
                 var MGE = CalculateMGE(DFIXYZ, DJ);
-                var FE = CalculateFE(DPSITE);
+                var FE = CalculateFE(i, ce, DPSITE, ZP);
 
                 UpdateMGF(MG, F, MGE, FE, NT, i);
             }
@@ -382,7 +382,7 @@ namespace WpfApp1
 
         private double[,] CalculateMGE(double[,,] DFIXYZ, double[] DJ)
         {
-            var Cs = new double[] { 5.0 / 9.0, 8.0 / 9.0, 5.0 / 9.0 };
+            var Cs = Constants.Cs;
             Func<int, int, int, double>[,] As =
             {
                 {
@@ -450,10 +450,9 @@ namespace WpfApp1
         }
         
         // TODO: calculate FE
-        private double[] CalculateFE(double[,,] DPSITE)
+        private double[] CalculateFE(int feIndex, int feCount, double[,,] DPSITE, int[,] ZP)
         {
             var result = new double[60];
-            
 
 #if DEBUG
             Debug.WriteLine($"FE: ");
@@ -478,6 +477,76 @@ namespace WpfApp1
             }
         }
 
+        private double[] GaussianElimination(double[,] A, double[] b)
+        {
+            int n = b.Length;
+            var x = new double[n];
+
+            // append b to the right of A
+            var AB = new double[n, n + 1];
+            for (int i = 0; i < n; ++i)
+            {
+                for (int j = 0; j < n; ++j)
+                {
+                    AB[i, j] = A[i, j];
+                }
+
+                AB[i, n] = b[i];
+            }
+
+            for (int i = 0; i < n; i++)
+            {
+                // Search for maximum in this column
+                double maxEl = Math.Abs(AB[i, i]);
+                int maxRow = i;
+                for (int k = i + 1; k < n; k++)
+                {
+                    if (Math.Abs(AB[k, i]) > maxEl)
+                    {
+                        maxEl = Math.Abs(AB[k, i]);
+                        maxRow = k;
+                    }
+                }
+
+                // Swap maximum row with current row (column by column)
+                for (int k = i; k < n + 1; k++)
+                {
+                    double tmp = AB[maxRow, k];
+                    AB[maxRow, k] = AB[i, k];
+                    AB[i, k] = tmp;
+                }
+
+                // Make all rows below this one 0 in current column
+                for (int k = i + 1; k < n; k++)
+                {
+                    double c = -AB[k, i] / AB[i, i];
+                    for (int j = i; j < n + 1; j++)
+                    {
+                        if (i == j)
+                        {
+                            AB[k, j] = 0;
+                        }
+                        else
+                        {
+                            AB[k, j] += c * AB[i, j];
+                        }
+                    }
+                }
+            }
+
+            // Solve equation Ax=b for an upper triangular matrix A
+            for (int i = n - 1; i >= 0; i--)
+            {
+                x[i] = AB[i, n] / AB[i, i];
+                for (int k = i - 1; k >= 0; k--)
+                {
+                    AB[k, n] -= AB[k, i] * x[i];
+                }
+            }
+
+            return x;
+        }
+        
         private void GenerateAndAddShapeToCollection(Point3D[] points, int[] pointIndexes, Brush vertColor, Visual3DCollection collection)
         {
             // add all points (vertices)
@@ -494,63 +563,6 @@ namespace WpfApp1
             //    var line = CreateLine(points[pointIndexes[i]], points[pointIndexes[i + 1]]);
             //    collection.Add(line);
             //}
-        }
-
-        private double[,] GaussianElimination(double[,] A, double[] x)
-        {
-            int n = x.Length - 1 ;
-
-            for (int i = 0; i < n; i++)
-            {
-                // Search for maximum in this column
-                double maxEl = Math.Abs(A[i, i]);
-                int maxRow = i;
-                for (int k = i + 1; k < n; k++)
-                {
-                    if (Math.Abs(A[k, i]) > maxEl)
-                    {
-                        maxEl = Math.Abs(A[k, i]);
-                        maxRow = k;
-                    }
-                }
-
-                // Swap maximum row with current row (column by column)
-                for (int k = i; k < n + 1; k++)
-                {
-                    double tmp = A[maxRow, k];
-                    A[maxRow, k] = A[i, k];
-                    A[i, k] = tmp;
-                }
-
-                // Make all rows below this one 0 in current column
-                for (int k = i + 1; k < n; k++)
-                {
-                    double c = -A[k, i] / A[i, i];
-                    for (int j = i; j < n + 1; j++)
-                    {
-                        if (i == j)
-                        {
-                            A[k, j] = 0;
-                        }
-                        else
-                        {
-                            A[k, j] += c * A[i, j];
-                        }
-                    }
-                }
-            }
-
-            // Solve equation Ax=b for an upper triangular matrix A
-            for (int i = n - 1; i >= 0; i--)
-            {
-                x[i] = A[i, n] / A[i, i];
-                for (int k = i - 1; k >= 0; k--)
-                {
-                    A[k, n] -= A[k, i] * x[i];
-                }
-            }
-
-            return A;
         }
 
         private PipeVisual3D CreateLine(Point3D start, Point3D end)

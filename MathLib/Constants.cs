@@ -6,6 +6,8 @@ namespace MathLib
     {
         public static Point3D[] GaussianAllCubePoints { get; }
 
+        public static double[] Cs { get; } = new double[] { 5.0 / 9.0, 8.0 / 9.0, 5.0 / 9.0 };
+
         public static Point3D[] GaussianStandardCubePoints { get; } = new Point3D[20]
         {
             // first 8
