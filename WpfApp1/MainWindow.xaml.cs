@@ -483,7 +483,7 @@ namespace WpfApp1
 
         private double[,] GaussianElimination(double[,] A, double[] x)
         {
-            int n = x.Length;
+            int n = x.Length - 1 ;
 
             for (int i = 0; i < n; i++)
             {
