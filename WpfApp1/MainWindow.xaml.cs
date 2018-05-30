@@ -59,6 +59,8 @@ namespace WpfApp1
             GenerateAndAddShapeToCollection(points, new int[] { }, Brushes.Blue, MainViewPort.Children);
         }
 
+        private static int[,,] globalToAKT;
+
         private Point3D[] GenerateAKT(int nx, int ny, int nz, double ax, double ay, double az)
         {
             double sx = ax / nx;
@@ -71,6 +73,7 @@ namespace WpfApp1
             int ce = (cx * nz + nx * cz) * cy + ny * cx * cz; // edges count
 
             var points = new Point3D[cxyz + ce];
+            globalToAKT = new int[cx * 2 - 1, cy * 2 - 1, cz * 2 - 1];
 
             int i = 0;
             for (int iz = 0; iz < cz * 2 - 1; ++iz)
@@ -82,7 +85,10 @@ namespace WpfApp1
                         int count = ix % 2 + iy % 2 + iz % 2;
                         if (count <= 1)
                         {
-                            points[i++] = new Point3D(ix * sx / 2.0, iy * sy / 2.0, iz * sz / 2.0);
+                            globalToAKT[ix, iy, iz] = i;
+
+                            points[i] = new Point3D(ix * sx / 2.0, iy * sy / 2.0, iz * sz / 2.0);
+                            i++;
                         }
                     }
                 }
@@ -206,7 +212,7 @@ namespace WpfApp1
 #if DEBUG
                 Debug.WriteLine($"Processing element #{i}");
 #endif
-
+                var nt = GeneratorNP.Generate(globalToAKT, nx, ny, nz);
                 var DFIXYZ = CalculateDFIXYZ(i, AKT, NT);
                 var DXYZABG = CalculateDXYZABG(i, AKT, NT, DFIABG);
                 var DJ = CalculateDJ(DXYZABG);
