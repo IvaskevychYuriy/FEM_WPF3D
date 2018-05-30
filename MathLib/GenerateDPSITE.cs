@@ -5,33 +5,6 @@ namespace MathLib
 {
     public class GenerateDPSITE
     {
-        public static Dictionary<int, int[]> gauss = new Dictionary<int, int[]> {
-            {0,  new int[]{0,0,0} },
-            {1,  new int[]{2,0,0} },
-            {2,  new int[]{2,2,0} },
-            {3,  new int[]{0,2,0} },
-
-            {4,  new int[]{0,0,2} },
-            {5,  new int[]{2,0,2} },
-            {6,  new int[]{2,2,2} },
-            {7,  new int[]{0,2,2} },
-
-            {8,  new int[]{1,0,0} },
-            {9,  new int[]{2,1,0} },
-            {10, new int[]{1,2,0} },
-            {11, new int[]{0,1,0} },
-
-            {12, new int[]{0,0,1} },
-            {13, new int[]{2,0,1} },
-            {14, new int[]{2,2,1} },
-            {15, new int[]{0,2,1} },
-
-            {16, new int[]{1,0,2} },
-            {17, new int[]{2,1,2} },
-            {18, new int[]{1,2,2} },
-            {19, new int[]{0,1,2} },
-        };
-
         public static double[,,] Generate()
         {
             var res = new double[9, 2, 8];
@@ -49,34 +22,36 @@ namespace MathLib
         public static double DN(int i, int j)
         {
             var nt = GetNiTi();
+            var gauss = GetGaussNode();
             if (j < 4)
             {
-                return 1 / 4 * nt[j].Item1 * (nt[j].Item2 * gauss[i][1] + 1) * (2 * nt[j].Item1 * gauss[i][0] + nt[j].Item2 * gauss[i][1]);
+                return 1 / 4 * nt[j].Item1 * (nt[j].Item2 * gauss[i,1] + 1) * (2 * nt[j].Item1 * gauss[i,0] + nt[j].Item2 * gauss[i,1]);
             }
             else if (j == 5 || j == 7)
             {
-                return nt[j].Item2 * gauss[i][1] * gauss[i][0] + gauss[i][0];
+                return nt[j].Item2 * gauss[i,1] * gauss[i,0] + gauss[i,0];
             }
             else
             {
-                return 1 / 2 * nt[j].Item1 * (gauss[i][1] * gauss[i][1] + 1);
+                return 1 / 2 * nt[j].Item1 * (gauss[i,1] * gauss[i,1] + 1);
             }
         }
 
         public static double DT(int i, int j)
         {
             var nt = GetNiTi();
+            var gauss = GetGaussNode();
             if (j < 4)
             {
-                return 1 / 4 * nt[j].Item2 * (nt[j].Item1 * gauss[i][0] + 1) * (2 * nt[j].Item2 * gauss[i][1] + nt[j].Item1 * gauss[i][0]);
+                return 1 / 4 * nt[j].Item2 * (nt[j].Item1 * gauss[i,0] + 1) * (2 * nt[j].Item2 * gauss[i,1] + nt[j].Item1 * gauss[i,0]);
             }
             else if (j == 5 || j == 7)
             {
-                return 1 / 2 * nt[j].Item2 * (gauss[i][0] * gauss[i][0] + 1);
+                return 1 / 2 * nt[j].Item2 * (gauss[i,0] * gauss[i,0] + 1);
             }
             else
             {
-                return nt[j].Item1 * gauss[i][1] * gauss[i][0] + gauss[i][1];
+                return nt[j].Item1 * gauss[i,1] * gauss[i,0] + gauss[i,1];
             }
         }
 
