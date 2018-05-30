@@ -1,4 +1,5 @@
 ﻿using HelixToolkit.Wpf;
+using MathLib;
 using System;
 using System.Diagnostics;
 using System.Linq;
@@ -47,9 +48,7 @@ namespace WpfApp1
             var ZP = CalculateZP(nx, ny, nz);
 
             var DFIABG = GenerateDFIABG();
-
-            // TODO: calculate DPSITE
-            var DPSITE = new double[9, 2, 8];
+            var DPSITE = GenerateDPSITE.Generate();
 
             var (MG, F) = ProcessElements(nx, ny, nz, AKT, NT, DFIABG, DPSITE);
         }
@@ -143,69 +142,25 @@ namespace WpfApp1
         // functions for dimensions for i < 8
         private Func<Point3D, Point3D, double>[] Dphis1 = new Func<Point3D, Point3D, double>[3]
         {
-                (Point3D p, Point3D pi) => pi.X * (1 + p.Y * pi.Y) * (1 + p.Z * pi.Z) * (2 * p.X * pi.X + p.Y * pi.Y + p.Z * pi.Z - 1) / 8.0,
-                (Point3D p, Point3D pi) => pi.Y * (1 + p.X * pi.X) * (1 + p.Z * pi.Z) * (2 * p.Y * pi.Y + p.X * pi.X + p.Z * pi.Z - 1) / 8.0,
-                (Point3D p, Point3D pi) => pi.Z * (1 + p.X * pi.X) * (1 + p.Y * pi.Y) * (2 * p.Z * pi.Z + p.X * pi.X + p.Y * pi.Y - 1) / 8.0
+            (Point3D p, Point3D pi) => pi.X * (1 + p.Y * pi.Y) * (1 + p.Z * pi.Z) * (2 * p.X * pi.X + p.Y * pi.Y + p.Z * pi.Z - 1) / 8.0,
+            (Point3D p, Point3D pi) => pi.Y * (1 + p.X * pi.X) * (1 + p.Z * pi.Z) * (2 * p.Y * pi.Y + p.X * pi.X + p.Z * pi.Z - 1) / 8.0,
+            (Point3D p, Point3D pi) => pi.Z * (1 + p.X * pi.X) * (1 + p.Y * pi.Y) * (2 * p.Z * pi.Z + p.X * pi.X + p.Y * pi.Y - 1) / 8.0
         };
 
         // functions for dimensions for i >= 8
         private Func<Point3D, Point3D, double>[] Dphis2 = new Func<Point3D, Point3D, double>[3]
         {
-                (Point3D p, Point3D pi) => (1 + p.Y * pi.Y) * (1 + p.Z * pi.Z) * (pi.Y * pi.Z * pi.Z + pi.X * pi.X * (pi.Y * pi.Y * p.Z + p.Y * pi.Z * pi.Z) + pi.X * (2 * pi.Y * p.X * pi.Z * pi.Z - 1)) / -4.0,
-                (Point3D p, Point3D pi) => (1 + p.X * pi.X) * (1 + p.Z * pi.Z) * (pi.X * pi.Y * pi.Y * pi.Y * p.Z + pi.X * pi.Z * pi.Z + p.X * pi.Y * pi.Y * pi.Z * pi.Z + pi.Y * (2 * pi.X * p.Y * pi.Z * pi.Z - 1)) / -4.0,
-                (Point3D p, Point3D pi) => (1 + p.X * pi.X) * (1 + p.Y * pi.Y) * (pi.X * p.Y * pi.Z * pi.Z * pi.Z + pi.X * pi.Y * pi.Y * (1 + 2 * p.Z * pi.Z) + pi.Z * (p.X * pi.Y * pi.Z * pi.Z - 1)) / -4.0
+            (Point3D p, Point3D pi) => (1 + p.Y * pi.Y) * (1 + p.Z * pi.Z) * (pi.Y * pi.Z * pi.Z + pi.X * pi.X * (pi.Y * pi.Y * p.Z + p.Y * pi.Z * pi.Z) + pi.X * (2 * pi.Y * p.X * pi.Z * pi.Z - 1)) / -4.0,
+            (Point3D p, Point3D pi) => (1 + p.X * pi.X) * (1 + p.Z * pi.Z) * (pi.X * pi.Y * pi.Y * pi.Y * p.Z + pi.X * pi.Z * pi.Z + p.X * pi.Y * pi.Y * pi.Z * pi.Z + pi.Y * (2 * pi.X * p.Y * pi.Z * pi.Z - 1)) / -4.0,
+            (Point3D p, Point3D pi) => (1 + p.X * pi.X) * (1 + p.Y * pi.Y) * (pi.X * p.Y * pi.Z * pi.Z * pi.Z + pi.X * pi.Y * pi.Y * (1 + 2 * p.Z * pi.Z) + pi.Z * (p.X * pi.Y * pi.Z * pi.Z - 1)) / -4.0
         };
-
-        private Point3D[] GenerateGaussPoints()
-        {
-            // generate 27 points in -1 to 1 standard cube 
-            var gaussPoints = new Point3D[27];
-            int c = 0;
-            for (int cx = 0; cx < 3; ++cx)
-            {
-                for (int cy = 0; cy < 3; ++cy)
-                {
-                    for (int cz = 0; cz < 3; ++cz)
-                    {
-                        gaussPoints[c++] = new Point3D(-1.0 + cx * 1.0, -1.0 + cy * 1.0, -1.0 + cz * 1.0);
-                    }
-                }
-            }
-
-            return gaussPoints;
-        }
 
         private double[,,] GenerateDFIABG()
         {
-            var gaussPoints = GenerateGaussPoints();
+            var gaussPoints = Constants.GaussianAllCubePoints;
 
             // 20 points for alpha_i, beta_i and gamma_i
-            var points = new Point3D[20]
-            {
-                // first 8
-                new Point3D(-1, -1, -1),
-                new Point3D(1, -1, -1),
-                new Point3D(1, 1, -1),
-                new Point3D(-1, 1, -1),
-                new Point3D(-1, -1, 1),
-                new Point3D(1, -1, 1),
-                new Point3D(1, 1, 1),
-                new Point3D(-1, 1, 1),
-
-                // rest 12
-                new Point3D(0, -1, -1),
-                new Point3D(1, 0, -1),
-                new Point3D(0, 1, -1),
-                new Point3D(-1, 0, -1),
-                new Point3D(-1, -1, 0),
-                new Point3D(1, -1, 0),
-                new Point3D(1, 1, 0),
-                new Point3D(-1, 1, 0),
-                new Point3D(0, -1, 1),
-                new Point3D(1, 0, 1),
-                new Point3D(0, 1, 1),
-                new Point3D(-1, 0, 1)
-            };
+            var points = Constants.GaussianStandardCubePoints;
             
             // calculate DFIABG itself
             var result = new double[27,3,20];
@@ -303,7 +258,7 @@ namespace WpfApp1
 
         private double[,,] CalculateDFIXYZ(int feIndex, Point3D[] AKT, int[,] NT)
         {
-            var gaussPoints = GenerateGaussPoints();
+            var gaussPoints = Constants.GaussianAllCubePoints;
 
             // calculate DFIXYZ itself
             var result = new double[27, 20, 3];
@@ -341,7 +296,7 @@ namespace WpfApp1
 
         private double[,,] CalculateDXYZABG(int feIndex, Point3D[] AKT, int[,] NT, double[,,] DFIABG)
         {
-            var gaussPoints = GenerateGaussPoints();
+            var gaussPoints = Constants.GaussianAllCubePoints;
 
             Func<Point3D, double>[] globalValuesGetters =
             {
