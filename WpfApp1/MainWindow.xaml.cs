@@ -31,8 +31,12 @@ namespace WpfApp1
             const int ny = 1;
             const int nz = 2;
 
+            const int ax = 3;
+            const int ay = 3;
+            const int az = 3;
+
             // initial points array
-            var AKT = GenerateAKT(nx, ny, nz);
+            var AKT = GenerateAKT(nx, ny, nz, ax, ay, az);
             Render(AKT);
 
             // TODO: calculate NT
@@ -56,8 +60,11 @@ namespace WpfApp1
             GenerateAndAddShapeToCollection(points, new int[] { }, Brushes.Blue, MainViewPort.Children);
         }
 
-        private Point3D[] GenerateAKT(int nx, int ny, int nz)
+        private Point3D[] GenerateAKT(int nx, int ny, int nz, double ax, double ay, double az)
         {
+            double sx = ax / nx;
+            double sy = ay / ny;
+            double sz = az / nz;
             int cx = nx + 1;
             int cy = ny + 1;
             int cz = nz + 1;
@@ -76,7 +83,7 @@ namespace WpfApp1
                         int count = ix % 2 + iy % 2 + iz % 2;
                         if (count <= 1)
                         {
-                            points[i++] = new Point3D(ix / 2.0, iy / 2.0, iz / 2.0);
+                            points[i++] = new Point3D(ix * sx / 2.0, iy * sy / 2.0, iz * sz / 2.0);
                         }
                     }
                 }
