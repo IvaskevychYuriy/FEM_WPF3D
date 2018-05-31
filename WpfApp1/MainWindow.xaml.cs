@@ -29,14 +29,14 @@ namespace WpfApp1
         public MainWindow()
         {
             InitializeComponent();
-         
+
             const int nx = 2;
             const int ny = 1;
-            const int nz = 2;
+            const int nz = 1;
 
-            const int ax = 3;
-            const int ay = 3;
-            const int az = 3;
+            const int ax = 4;
+            const int ay = 2;
+            const int az = 2;
 
             // initial points array
             var AKT = GenerateAKT(nx, ny, nz, ax, ay, az);
@@ -51,7 +51,7 @@ namespace WpfApp1
 
             var DFIABG = GenerateDFIABG();
             var DPSITE = GenerateDPSITE.Generate();
-            
+
             var (MG, F) = ProcessElements(nx, ny, nz, AKT, NT, DFIABG, DPSITE, ZP);
             FixMG(MG, ZU);
 
@@ -59,7 +59,7 @@ namespace WpfApp1
             var result = AddTranslation(AKT, U);
             RenderResult(result);
         }
-        
+
         private void Render(Point3D[] points)
         {
             // TODO: add edges
@@ -108,10 +108,10 @@ namespace WpfApp1
             }
 
 #if DEBUG
-            Debug.WriteLine("Initial points (AKT): ");
+            WriteLine("Initial points (AKT): ");
             foreach (var p in points)
             {
-                Debug.WriteLine(p);
+                WriteLine(p);
             }
 #endif
 
@@ -125,8 +125,8 @@ namespace WpfApp1
             var ZU = Enumerable.Range(0, nzu).ToArray();
 
 #if DEBUG
-            Debug.WriteLine("ZU: ");
-            Debug.WriteLine(string.Join("; ", ZU));
+            WriteLine("ZU: ");
+            WriteLine(string.Join("; ", ZU));
 #endif
 
             return ZU;
@@ -148,16 +148,16 @@ namespace WpfApp1
             }
 
 #if DEBUG
-            Debug.WriteLine("ZP: ");
+            WriteLine("ZP: ");
             for (int i = 0; i < nep; i++)
             {
-                Debug.WriteLine($"{ZP[i, 0]}  {ZP[i, 1]}  {ZP[i, 2]}");
+                WriteLine($"{ZP[i, 0]}  {ZP[i, 1]}  {ZP[i, 2]}");
             }
 #endif
 
             return ZP;
         }
-        
+
         // functions for dimensions for i < 8
         private Func<Point3D, Point3D, double>[] Dphis1 = new Func<Point3D, Point3D, double>[3]
         {
@@ -180,9 +180,9 @@ namespace WpfApp1
 
             // 20 points for alpha_i, beta_i and gamma_i
             var points = Constants.GaussianStandardCubePoints;
-            
+
             // calculate DFIABG itself
-            var result = new double[27,3,20];
+            var result = new double[27, 3, 20];
             for (int cg = 0; cg < 27; ++cg)             // gauss points
             {
                 var p = gaussPoints[cg];
@@ -197,14 +197,14 @@ namespace WpfApp1
             }
 
 #if DEBUG
-            Debug.WriteLine("DFIABG: ");
+            WriteLine("DFIABG: ");
             for (int cg = 0; cg < 27; ++cg)
             {
                 for (int d = 0; d < 3; ++d)
                 {
                     for (int i = 0; i < 20; ++i)
                     {
-                        Debug.WriteLine(result[cg, d, i]);
+                        WriteLine(result[cg, d, i]);
                     }
                 }
             }
@@ -212,7 +212,7 @@ namespace WpfApp1
 
             return result;
         }
-        
+
         private (double[,], double[]) ProcessElements(int nx, int ny, int nz, Point3D[] AKT, int[,] NT, double[,,] DFIABG, double[,,] DPSITE, int[,] ZP)
         {
             int npq = AKT.Length;
@@ -223,7 +223,7 @@ namespace WpfApp1
             for (int i = 0; i < ce; ++i)
             {
 #if DEBUG
-                Debug.WriteLine($"Processing element #{i}");
+                WriteLine($"Processing element #{i}");
 #endif
 
                 var DFIXYZ = CalculateDFIXYZ(i, AKT, NT);
@@ -236,21 +236,21 @@ namespace WpfApp1
             }
 
 #if DEBUG
-            Debug.WriteLine($"MG: ");
+            WriteLine($"MG: ");
             for (int i = 0; i < 3 * npq; ++i)
             {
                 for (int j = 0; j < 3 * npq; ++j)
                 {
-                    Debug.Write(MG[i, j] + " ");
+                    Write(MG[i, j] + " ");
                 }
 
-                Debug.WriteLine(string.Empty);
+                WriteLine(string.Empty);
             }
 
-            Debug.WriteLine($"F: ");
+            WriteLine($"F: ");
             for (int i = 0; i < 3 * npq; ++i)
             {
-                Debug.WriteLine(F[i]);
+                WriteLine(F[i]);
             }
 #endif
 
@@ -296,14 +296,14 @@ namespace WpfApp1
             }
 
 #if DEBUG
-            Debug.WriteLine($"DFIXYZ (feIndex = {feIndex}): ");
+            WriteLine($"DFIXYZ (feIndex = {feIndex}): ");
             for (int cg = 0; cg < 27; ++cg)
             {
                 for (int d = 0; d < 3; ++d)
                 {
                     for (int i = 0; i < 20; ++i)
                     {
-                        Debug.WriteLine(result[cg, i, d]);
+                        WriteLine(result[cg, i, d]);
                     }
                 }
             }
@@ -349,14 +349,14 @@ namespace WpfApp1
             }
 
 #if DEBUG
-            Debug.WriteLine($"DXYZABG (feIndex = {feIndex}): ");
+            WriteLine($"DXYZABG (feIndex = {feIndex}): ");
             for (int gd = 0; gd < 3; ++gd)
             {
                 for (int ld = 0; ld < 3; ++ld)
                 {
                     for (int cg = 0; cg < 27; ++cg)
                     {
-                        Debug.WriteLine(result[gd, ld, cg]);
+                        WriteLine(result[gd, ld, cg]);
                     }
                 }
             }
@@ -382,12 +382,12 @@ namespace WpfApp1
                                          , DXYZABG[0, 1, cg], DXYZABG[1, 1, cg], DXYZABG[2, 1, cg]
                                          , DXYZABG[0, 2, cg], DXYZABG[1, 2, cg], DXYZABG[2, 2, cg]);
             }
-            
+
 #if DEBUG
-            Debug.WriteLine($"DJ: ");
+            WriteLine($"DJ: ");
             for (int cg = 0; cg < 27; ++cg)
             {
-                Debug.WriteLine(result[cg]);
+                WriteLine(result[cg]);
             }
 #endif
 
@@ -450,35 +450,57 @@ namespace WpfApp1
             }
 
 #if DEBUG
-            Debug.WriteLine($"MGE: ");
+            WriteLine($"MGE: ");
             for (int i = 0; i < 60; ++i)
             {
                 for (int j = 0; j < 60; ++j)
                 {
-                    Debug.WriteLine(result[i, j]);
+                    WriteLine(result[i, j]);
                 }
             }
 #endif
 
             return result;
         }
-        
+
         // TODO: calculate FE
         private double[] CalculateFE(int feIndex, int feCount, double[,,] DPSITE, int[,] ZP)
         {
             var result = new double[60];
 
+            var Cs = Constants.Cs;
+            for (int i = 0; i < 8; ++i)
+            {
+                for (int d = 0; d < 3; ++d)
+                {
+                    int cg = 0;
+                    double localSum = 0.0;
+                    for (int m = 0; m < 3; ++m)
+                    {
+                        int n = 2;
+                        int p = 1; // TODO: get from ZP
+
+                        //DPSITE[cg + 2, ];
+
+                        //double tmp = GenerateDPSITE.DN(cg, i, y, z) * GenerateDPSITE.DT(cg, i)
+                        //localSum += Cs[m] * Cs[n] * p * DPSITE[cg + 2, 0, i]
+
+                        cg += 3;
+                    }
+                }
+            }
+
 #if DEBUG
-            Debug.WriteLine($"FE: ");
+            WriteLine($"FE: ");
             for (int i = 0; i < 60; ++i)
             {
-                Debug.WriteLine(result[i]);
+                WriteLine(result[i]);
             }
 #endif
 
             return result;
         }
-        
+
         private void FixMG(double[,] MG, int[] ZU)
         {
             for (int d = 0; d < 3; ++d)
@@ -617,6 +639,26 @@ namespace WpfApp1
             vert.Fill = fill;
 
             return vert;
+        }
+
+        private static string Id { get; } = DateTime.Now.ToString().Replace(" ", "_").Replace(":", "-");
+
+        private void WriteLine<T>(T str)
+        {
+            using (var s = new System.IO.StreamWriter(System.IO.Path.Combine("../../", "test-" + Id + ".txt"), true))
+            {
+                s.WriteLine(str);
+                s.Flush();
+            }
+        }
+
+        private void Write(string str)
+        {
+                using (var s = new System.IO.StreamWriter(System.IO.Path.Combine("../../", "test-" + Id + ".txt"), true))
+                {
+                    s.Write(str);
+                    s.Flush();
+                }
         }
     }
 }

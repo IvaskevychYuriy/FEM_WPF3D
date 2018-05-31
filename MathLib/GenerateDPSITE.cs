@@ -7,51 +7,51 @@ namespace MathLib
     {
         public static double[,,] Generate()
         {
+            var gauss = GetGaussNode();
             var res = new double[9, 2, 8];
             for (int i = 0; i < 9; i++)
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    res[i, 0, j] = DN(i, j);
-                    res[i, 1, j] = DT(i, j);
+                    res[i, 0, j] = DN(i, j, gauss[i, 0], gauss[i, 1]);
+                    res[i, 1, j] = DT(i, j, gauss[i, 0], gauss[i, 1]);
                 }
             }
             return res;
         }
 
-        public static double DN(int i, int j)
+        public static double DN(int i, int j, double p1, double p2)
         {
             var nt = GetNiTi();
-            var gauss = GetGaussNode();
             if (j < 4)
             {
-                return 1 / 4 * nt[j].Item1 * (nt[j].Item2 * gauss[i,1] + 1) * (2 * nt[j].Item1 * gauss[i,0] + nt[j].Item2 * gauss[i,1]);
+                return 1 / 4 * nt[j].Item1 * (nt[j].Item2 * p2 + 1) * (2 * nt[j].Item1 * p1 + nt[j].Item2 * p2);
             }
             else if (j == 5 || j == 7)
             {
-                return nt[j].Item2 * gauss[i,1] * gauss[i,0] + gauss[i,0];
+                return nt[j].Item2 * p2 * p1 + p1;
             }
             else
             {
-                return 1 / 2 * nt[j].Item1 * (gauss[i,1] * gauss[i,1] + 1);
+                return 1 / 2 * nt[j].Item1 * (p2 * p2 + 1);
             }
         }
 
-        public static double DT(int i, int j)
+        public static double DT(int i, int j, double p1, double p2)
         {
             var nt = GetNiTi();
             var gauss = GetGaussNode();
             if (j < 4)
             {
-                return 1 / 4 * nt[j].Item2 * (nt[j].Item1 * gauss[i,0] + 1) * (2 * nt[j].Item2 * gauss[i,1] + nt[j].Item1 * gauss[i,0]);
+                return 1 / 4 * nt[j].Item2 * (nt[j].Item1 * p1 + 1) * (2 * nt[j].Item2 * p2 + nt[j].Item1 * p1);
             }
             else if (j == 5 || j == 7)
             {
-                return 1 / 2 * nt[j].Item2 * (gauss[i,0] * gauss[i,0] + 1);
+                return 1 / 2 * nt[j].Item2 * (p1 * p1 + 1);
             }
             else
             {
-                return nt[j].Item1 * gauss[i,1] * gauss[i,0] + gauss[i,1];
+                return nt[j].Item1 * p2 * p1 + p2;
             }
         }
 
