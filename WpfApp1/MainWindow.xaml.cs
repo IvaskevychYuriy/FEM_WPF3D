@@ -43,7 +43,7 @@ namespace WpfApp1
             Render(AKT);
 
             // TODO: calculate NT
-            var NT = new int[20, nx*ny*nz];
+            var NT = GeneratorNP.Generate(globalToAKT, nx, ny, nz);
 
             // fixed points global coords (ZU) and force info (ZP)
             var ZU = CalculateZU(nx, ny, nz);
@@ -217,7 +217,7 @@ namespace WpfApp1
 #if DEBUG
                 Debug.WriteLine($"Processing element #{i}");
 #endif
-                var nt = GeneratorNP.Generate(globalToAKT, nx, ny, nz);
+
                 var DFIXYZ = CalculateDFIXYZ(i, AKT, NT);
                 var DXYZABG = CalculateDXYZABG(i, AKT, NT, DFIABG);
                 var DJ = CalculateDJ(DXYZABG);

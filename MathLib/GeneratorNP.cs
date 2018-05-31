@@ -1,16 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MathLib
+﻿namespace MathLib
 {
     public class GeneratorNP
     {
-        public static double[,] Generate(int[,,] globalToAKT,  int nx, int ny, int nz)
+        public static int[,] Generate(int[,,] globalToAKT,  int nx, int ny, int nz)
         {
-            var nt = new double[nx * ny * nz, 20];
+            var nt = new int[20, nx * ny * nz];
             int counter = 0;
             for (int iz = 0; iz < nz; iz++)
             {
@@ -18,28 +12,28 @@ namespace MathLib
                 {
                     for (int ix = 0; ix < nx; ix++)
                     {
-                        nt[counter, 0] = globalToAKT[2 * ix, 2 * iy, 2 * iz];
-                        nt[counter, 1] = globalToAKT[2 * ix + 1, 2 * iy, 2 * iz];
-                        nt[counter, 2] = globalToAKT[2 * ix + 2, 2 * iy, 2 * iz];
-                        nt[counter, 3] = globalToAKT[2 * ix, 2 * iy + 1, 2 * iz];
-                        nt[counter, 4] = globalToAKT[2 * ix + 2, 2 * iy + 1, 2 * iz];
-                        nt[counter, 5] = globalToAKT[2 * ix, 2 * iy + 2, 2 * iz];
-                        nt[counter, 6] = globalToAKT[2 * ix + 1, 2 * iy + 2, 2 * iz];
-                        nt[counter, 7] = globalToAKT[2 * ix + 2, 2 * iy + 2, 2 * iz];
-
-                        nt[counter, 8] = globalToAKT[2 * ix, 2 * iy, 2 * iz + 1];
-                        nt[counter, 9] = globalToAKT[2 * ix + 2, 2 * iy, 2 * iz + 1];
-                        nt[counter, 10] = globalToAKT[2 * ix, 2 * iy + 2, 2 * iz + 1];
-                        nt[counter, 11] = globalToAKT[2 * ix + 2, 2 * iy + 2, 2 * iz + 1];
-
-                        nt[counter, 12] = globalToAKT[2 * ix, 2 * iy, 2 * iz + 2];
-                        nt[counter, 13] = globalToAKT[2 * ix + 1, 2 * iy, 2 * iz + 2];
-                        nt[counter, 14] = globalToAKT[2 * ix + 2, 2 * iy, 2 * iz + 2];
-                        nt[counter, 15] = globalToAKT[2 * ix, 2 * iy + 1, 2 * iz + 2];
-                        nt[counter, 16] = globalToAKT[2 * ix + 2, 2 * iy + 1, 2 * iz + 2];
-                        nt[counter, 17] = globalToAKT[2 * ix, 2 * iy + 2, 2 * iz + 2];
-                        nt[counter, 18] = globalToAKT[2 * ix + 1, 2 * iy + 2, 2 * iz + 2];
-                        nt[counter, 19] = globalToAKT[2 * ix + 2, 2 * iy + 2, 2 * iz + 2];
+                        nt[0, counter] = globalToAKT[2 * ix, 2 * iy, 2 * iz];
+                        nt[1, counter] = globalToAKT[2 * ix + 1, 2 * iy, 2 * iz];
+                        nt[2, counter] = globalToAKT[2 * ix + 2, 2 * iy, 2 * iz];
+                        nt[3, counter] = globalToAKT[2 * ix, 2 * iy + 1, 2 * iz];
+                        nt[4, counter] = globalToAKT[2 * ix + 2, 2 * iy + 1, 2 * iz];
+                        nt[5, counter] = globalToAKT[2 * ix, 2 * iy + 2, 2 * iz];
+                        nt[6, counter] = globalToAKT[2 * ix + 1, 2 * iy + 2, 2 * iz];
+                        nt[7, counter] = globalToAKT[2 * ix + 2, 2 * iy + 2, 2 * iz];
+                             
+                        nt[8, counter] = globalToAKT[2 * ix, 2 * iy, 2 * iz + 1];
+                        nt[9, counter] = globalToAKT[2 * ix + 2, 2 * iy, 2 * iz + 1];
+                        nt[10, counter] = globalToAKT[2 * ix, 2 * iy + 2, 2 * iz + 1];
+                        nt[11, counter] = globalToAKT[2 * ix + 2, 2 * iy + 2, 2 * iz + 1];
+                             
+                        nt[12, counter] = globalToAKT[2 * ix, 2 * iy, 2 * iz + 2];
+                        nt[13, counter] = globalToAKT[2 * ix + 1, 2 * iy, 2 * iz + 2];
+                        nt[14, counter] = globalToAKT[2 * ix + 2, 2 * iy, 2 * iz + 2];
+                        nt[15, counter] = globalToAKT[2 * ix, 2 * iy + 1, 2 * iz + 2];
+                        nt[16, counter] = globalToAKT[2 * ix + 2, 2 * iy + 1, 2 * iz + 2];
+                        nt[17, counter] = globalToAKT[2 * ix, 2 * iy + 2, 2 * iz + 2];
+                        nt[18, counter] = globalToAKT[2 * ix + 1, 2 * iy + 2, 2 * iz + 2];
+                        nt[19, counter] = globalToAKT[2 * ix + 2, 2 * iy + 2, 2 * iz + 2];
                         counter++;
                     }
                 }
