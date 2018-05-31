@@ -56,12 +56,20 @@ namespace WpfApp1
             FixMG(MG, ZU);
 
             var U = GaussianElimination(MG, F);
+            var result = AddTranslation(AKT, U);
+            RenderResult(result);
         }
-
+        
         private void Render(Point3D[] points)
         {
             // TODO: add edges
             GenerateAndAddShapeToCollection(points, new int[] { }, Brushes.Blue, MainViewPort.Children);
+        }
+
+        private void RenderResult(Point3D[] points)
+        {
+            // TODO: add edges
+            GenerateAndAddShapeToCollection(points, new int[] { }, Brushes.Red, MainViewPort.Children);
         }
 
         private static int[,,] globalToAKT;
@@ -552,7 +560,23 @@ namespace WpfApp1
 
             return x;
         }
-        
+
+        private Point3D[] AddTranslation(Point3D[] AKT, double[] U)
+        {
+            var result = new Point3D[AKT.Length];
+            for (int i = 0; i < AKT.Length; ++i)
+            {
+                result[i] = new Point3D()
+                {
+                    X = AKT[i].X + U[i * 3],
+                    Y = AKT[i].Y + U[i * 3 + 1],
+                    Z = AKT[i].Z + U[i * 3 + 2]
+                };
+            }
+
+            return result;
+        }
+
         private void GenerateAndAddShapeToCollection(Point3D[] points, int[] pointIndexes, Brush vertColor, Visual3DCollection collection)
         {
             // add all points (vertices)
