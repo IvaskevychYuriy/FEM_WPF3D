@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace MathLib
 {
@@ -13,14 +12,14 @@ namespace MathLib
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    res[i, 0, j] = DN(i, j, gauss[i, 0], gauss[i, 1]);
-                    res[i, 1, j] = DT(i, j, gauss[i, 0], gauss[i, 1]);
+                    res[i, 0, j] = DN(j, gauss[i, 0], gauss[i, 1]);
+                    res[i, 1, j] = DT(j, gauss[i, 0], gauss[i, 1]);
                 }
             }
             return res;
         }
 
-        public static double DN(int i, int j, double p1, double p2)
+        public static double DN(int j, double p1, double p2)
         {
             var nt = GetNiTi();
             if (j < 4)
@@ -37,7 +36,7 @@ namespace MathLib
             }
         }
 
-        public static double DT(int i, int j, double p1, double p2)
+        public static double DT(int j, double p1, double p2)
         {
             var nt = GetNiTi();
             var gauss = GetGaussNode();
@@ -55,6 +54,7 @@ namespace MathLib
             }
         }
 
+        // TODO: return fking multi dimensional arrray
         public static Tuple<int, int>[] GetNiTi()
         {
             var result = new Tuple<int, int>[8];

@@ -1,6 +1,7 @@
 ﻿using HelixToolkit.Wpf;
 using MathLib;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Windows;
@@ -41,13 +42,12 @@ namespace WpfApp1
             // initial points array
             var AKT = GenerateAKT(nx, ny, nz, ax, ay, az);
             Render(AKT);
-
-            // TODO: calculate NT
+            
             var NT = GeneratorNP.Generate(globalToAKT, nx, ny, nz);
 
             // fixed points global coords (ZU) and force info (ZP)
             var ZU = CalculateZU(nx, ny, nz);
-            var ZP = CalculateZP(nx, ny, nz);
+            var ZP = CalculateZP(nx, ny, nz, AKT.Length);
 
             var DFIABG = GenerateDFIABG();
             var DPSITE = GenerateDPSITE.Generate();
@@ -57,7 +57,7 @@ namespace WpfApp1
 
             var U = GaussianElimination(MG, F);
             var result = AddTranslation(AKT, U);
-            RenderResult(result);
+            //RenderResult(result);
         }
 
         private void Render(Point3D[] points)
@@ -132,13 +132,12 @@ namespace WpfApp1
             return ZU;
         }
 
-        private int[,] CalculateZP(int nx, int ny, int nz)
+        private int[,] CalculateZP(int nx, int ny, int nz, int totalVertexCount)
         {
             // force is applied straight down at each vertext on the top plane
             int nep = (nx * 2 + 1) * (ny + 1) + (nx + 1) * ny;      // count of vertices on the top plane
             var ZP = new int[nep, 3];
-
-            int totalVertexCount = ((nx * 2 + 1) + (nx + 1) * ny) * (nz + 1) + (nx + 1) * (ny + 1) * nz;
+            
             int startPoint = totalVertexCount - nep;
             for (int i = 0; i < nep; i++)
             {
@@ -230,7 +229,7 @@ namespace WpfApp1
                 var DXYZABG = CalculateDXYZABG(i, AKT, NT, DFIABG);
                 var DJ = CalculateDJ(DXYZABG);
                 var MGE = CalculateMGE(DFIXYZ, DJ);
-                var FE = CalculateFE(i, ce, DPSITE, ZP);
+                var FE = CalculateFE(i, ce, nx * ny, DPSITE, ZP, NT);
 
                 UpdateMGF(MG, F, MGE, FE, NT, i);
             }
@@ -464,30 +463,70 @@ namespace WpfApp1
         }
 
         // TODO: calculate FE
-        private double[] CalculateFE(int feIndex, int feCount, double[,,] DPSITE, int[,] ZP)
+        private double[] CalculateFE(int feIndex, int feCount, int feCountUnderPressure, double[,,] DPSITE, int[,] ZP, int[,] NT)
         {
             var result = new double[60];
+            if (feIndex < feCount - feCountUnderPressure)
+            {
+                // current element not under force
+                return result;
+            }
 
+            var nodes = GenerateDPSITE.GetNiTi();
+            var dPsiFunctors = new Func<int, double>[]
+            {
+                (i) => GenerateDPSITE.DN(i, nodes[i].Item1, nodes[i].Item2),
+                (i) => GenerateDPSITE.DT(i, nodes[i].Item1, nodes[i].Item2),
+            };
+            
+            var gaussianNodes = GenerateDPSITE.GetGaussNode();
+            var derivatives = new double[3, 2];                 // dxyz / dnt, TODO: move to constants
+            for (int d1 = 0; d1 < 3; ++d1)                      // 1st dimention (x, y, z)
+            {
+                for (int d2 = 0; d2 < 2; ++d2)                  // 2nd dimention (n, t)
+                {
+                    double localSum = 0.0;
+                    for (int i = 0; i < 8; ++i)
+                    {
+                        int coordValue = (d2 == 0 ? nodes[i].Item1 : nodes[i].Item2);
+                        ;
+                        localSum += coordValue * dPsiFunctors[d2](i);
+                    }
+
+                    derivatives[d1, d2] = localSum;
+                }
+            }
+
+            var zpMap = new Dictionary<int, int>();
+            for (int i = 0; i < ZP.GetLength(0); i++)
+            {
+                zpMap.Add(ZP[i, 0], i);                    // global point index - index in ZP
+            }
+
+            //var pFunctors = new Func<int, double>[]
+            //{
+            //    (li) => 0,                              // Px
+            //    (li) => 0,                              // Py
+            //    (li) =>    // Pz - force applied to that point according to ZP
+            //};
+
+            int startIndex = 60 - 24 + 2;               // third (for Z-coord) starting from last 24 in all FE (60)
             var Cs = Constants.Cs;
             for (int i = 0; i < 8; ++i)
             {
-                for (int d = 0; d < 3; ++d)
-                {
                     int cg = 0;
                     double localSum = 0.0;
                     for (int m = 0; m < 3; ++m)
                     {
-                        int n = 2;
-                        int p = 1; // TODO: get from ZP
-
-                        //DPSITE[cg + 2, ];
-
-                        //double tmp = GenerateDPSITE.DN(cg, i, y, z) * GenerateDPSITE.DT(cg, i)
-                        //localSum += Cs[m] * Cs[n] * p * DPSITE[cg + 2, 0, i]
-
-                        cg += 3;
+                        for (int n = 2; n < 3; ++n)
+                        {
+                            localSum += Cs[m] * Cs[n];
+                            ++cg;
+                        }
                     }
-                }
+
+                result[startIndex] = localSum * ZP[zpMap[NT[i + 12, feIndex]], 2] * (derivatives[0, 0] * derivatives[1, 1] - derivatives[1, 0] * derivatives[0, 1]);
+                startIndex += 3;
             }
 
 #if DEBUG
