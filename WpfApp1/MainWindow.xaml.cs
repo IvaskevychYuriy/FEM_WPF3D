@@ -57,7 +57,7 @@ namespace WpfApp1
 
             var U = GaussianElimination(MG, F);
             var result = AddTranslation(AKT, U);
-            //RenderResult(result);
+            RenderResult(result);
         }
 
         private void Render(Point3D[] points)
@@ -229,7 +229,7 @@ namespace WpfApp1
                 var DXYZABG = CalculateDXYZABG(i, AKT, NT, DFIABG);
                 var DJ = CalculateDJ(DXYZABG);
                 var MGE = CalculateMGE(DFIXYZ, DJ);
-                var FE = CalculateFE(i, ce, nx * ny, DPSITE, ZP, NT);
+                var FE = CalculateFE(i, ce, nx * ny, DPSITE, ZP, NT, AKT);
 
                 UpdateMGF(MG, F, MGE, FE, NT, i);
             }
@@ -260,11 +260,11 @@ namespace WpfApp1
         {
             for (int i = 0; i < 60; ++i)
             {
-                int di = i / 20;                    // dimension (x,y or z ) for row
+                int di = i / 20;                    // dimension (x,y or z) for row
                 int gi = NT[i % 20, feIndex];       // global index for row
                 for (int j = 0; j < 60; ++j)
                 {
-                    int dj = j / 20;                // dimension (x,y or z ) for col
+                    int dj = j / 20;                // dimension (x,y or z) for col
                     int gj = NT[j % 20, feIndex];   // global index for col
 
                     MG[3 * gi + di, 3 * gj + dj] = MGE[i, j];
@@ -463,7 +463,7 @@ namespace WpfApp1
         }
 
         // TODO: calculate FE
-        private double[] CalculateFE(int feIndex, int feCount, int feCountUnderPressure, double[,,] DPSITE, int[,] ZP, int[,] NT)
+        private double[] CalculateFE(int feIndex, int feCount, int feCountUnderPressure, double[,,] DPSITE, int[,] ZP, int[,] NT, Point3D[] AKT)
         {
             var result = new double[60];
             if (feIndex < feCount - feCountUnderPressure)
@@ -478,6 +478,13 @@ namespace WpfApp1
                 (i) => GenerateDPSITE.DN(i, nodes[i].Item1, nodes[i].Item2),
                 (i) => GenerateDPSITE.DT(i, nodes[i].Item1, nodes[i].Item2),
             };
+
+            var globalCoordGetters = new Func<Point3D, double>[]
+            {
+                p => p.X,
+                p => p.Y,
+                p => p.Z
+            };
             
             var gaussianNodes = GenerateDPSITE.GetGaussNode();
             var derivatives = new double[3, 2];                 // dxyz / dnt, TODO: move to constants
@@ -488,8 +495,8 @@ namespace WpfApp1
                     double localSum = 0.0;
                     for (int i = 0; i < 8; ++i)
                     {
-                        int coordValue = (d2 == 0 ? nodes[i].Item1 : nodes[i].Item2);
-                        ;
+                        var globalPoint = AKT[NT[12 + i, feIndex]];
+                        double coordValue = globalCoordGetters[d1](globalPoint);
                         localSum += coordValue * dPsiFunctors[d2](i);
                     }
 
