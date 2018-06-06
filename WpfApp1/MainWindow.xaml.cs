@@ -21,7 +21,7 @@ namespace WpfApp1
         private const double VertRadius = 0.1;
 
         private const double E = 1.0;
-        private const double v = 1.0;
+        private const double v = 0.3;
         private const double l = E / ((1 + v) * (1 - 2 * v));
         private const double m = E / (2 * (1 + v));
 
@@ -31,11 +31,11 @@ namespace WpfApp1
         {
             InitializeComponent();
 
-            const int nx = 2;
+            const int nx = 1;
             const int ny = 1;
             const int nz = 1;
 
-            const int ax = 4;
+            const int ax = 2;
             const int ay = 2;
             const int az = 2;
 
@@ -56,7 +56,10 @@ namespace WpfApp1
             FixMG(MG, ZU);
 
             var U = GaussianElimination(MG, F);
-            var result = AddTranslation(AKT, U);
+            Func<double, double> t = x => (x < -10 ? -10 : (x > 10 ? 10 : x));
+            var result = AddTranslation(AKT, U)
+                .Select(p => new Point3D(t(p.X), t(p.Y), t(p.Z)))
+                .ToArray();
             RenderResult(result);
         }
 
@@ -132,18 +135,18 @@ namespace WpfApp1
             return ZU;
         }
 
-        private int[,] CalculateZP(int nx, int ny, int nz, int totalVertexCount)
+        private double[,] CalculateZP(int nx, int ny, int nz, int totalVertexCount)
         {
             // force is applied straight down at each vertext on the top plane
             int nep = (nx * 2 + 1) * (ny + 1) + (nx + 1) * ny;      // count of vertices on the top plane
-            var ZP = new int[nep, 3];
+            var ZP = new double[nep, 3];
             
             int startPoint = totalVertexCount - nep;
             for (int i = 0; i < nep; i++)
             {
                 ZP[i, 0] = startPoint + i;
                 ZP[i, 1] = 5;                                       // 5 is top most (6th) plane of 1x1 cube
-                ZP[i, 2] = 1;                                       // force applied
+                ZP[i, 2] = 0.01;                                       // force applied
             }
 
 #if DEBUG
@@ -212,7 +215,7 @@ namespace WpfApp1
             return result;
         }
 
-        private (double[,], double[]) ProcessElements(int nx, int ny, int nz, Point3D[] AKT, int[,] NT, double[,,] DFIABG, double[,,] DPSITE, int[,] ZP)
+        private (double[,], double[]) ProcessElements(int nx, int ny, int nz, Point3D[] AKT, int[,] NT, double[,,] DFIABG, double[,,] DPSITE, double[,] ZP)
         {
             int npq = AKT.Length;
             var MG = new double[3 * npq, 3 * npq];
@@ -225,8 +228,8 @@ namespace WpfApp1
                 WriteLine($"Processing element #{i}");
 #endif
 
-                var DFIXYZ = CalculateDFIXYZ(i, AKT, NT);
                 var DXYZABG = CalculateDXYZABG(i, AKT, NT, DFIABG);
+                var DFIXYZ = CalculateDFIXYZ(i, AKT, NT, DFIABG, DXYZABG);
                 var DJ = CalculateDJ(DXYZABG);
                 var MGE = CalculateMGE(DFIXYZ, DJ);
                 var FE = CalculateFE(i, ce, nx * ny, DPSITE, ZP, NT, AKT);
@@ -274,7 +277,7 @@ namespace WpfApp1
             }
         }
 
-        private double[,,] CalculateDFIXYZ(int feIndex, Point3D[] AKT, int[,] NT)
+        private double[,,] CalculateDFIXYZ(int feIndex, Point3D[] AKT, int[,] NT, double[,,] DFIABG, double[,,] DXYZABG)
         {
             var gaussPoints = Constants.GaussianAllCubePoints;
 
@@ -290,6 +293,14 @@ namespace WpfApp1
                         var pi = AKT[NT[i, feIndex]];   // use NT to lookup global point using feIndex and i
                         var funcArray = i < 8 ? Dphis1 : Dphis2;
                         result[cg, i, d] = funcArray[d](p, pi);
+
+                        // uncomment to unroll NaN version
+                        //var b = new double[] { DFIABG[cg, 0, i], DFIABG[cg, 1, i], DFIABG[cg, 2, i] };
+                        //var res = GaussianElimination(CalculateD(DXYZABG, cg), b);
+                        //for (int d = 0; d < 3; ++d)
+                        //{
+                        //    result[cg, i, d] = res[d];
+                        //}
                     }
                 }
             }
@@ -393,6 +404,31 @@ namespace WpfApp1
             return result;
         }
 
+        private double[,] CalculateD(double[,,] DXYZABG, int cg)
+        {
+            var result = new double[,]
+            {
+                { DXYZABG[0, 0, cg], DXYZABG[1, 0, cg], DXYZABG[2, 0, cg] },
+                { DXYZABG[0, 1, cg], DXYZABG[1, 1, cg], DXYZABG[2, 1, cg] },
+                { DXYZABG[0, 2, cg], DXYZABG[1, 2, cg], DXYZABG[2, 2, cg] }
+            };
+
+#if DEBUG
+            WriteLine($"D (cg={cg}): ");
+            for (int i = 0; i < 3; ++i)
+            {
+                for (int j = 0; j < 3; ++j)
+                {
+                    Write(result[i,j] + " ");
+                }
+
+                WriteLine("");
+            }
+#endif
+
+            return result;
+        }
+
         private double[,] CalculateMGE(double[,,] DFIXYZ, double[] DJ)
         {
             var Cs = Constants.Cs;
@@ -448,8 +484,33 @@ namespace WpfApp1
                 }
             }
 
+            //for (int i = 0; i < 60; ++i)
+            //{
+            //    for (int j = 0; j < i; ++j)
+            //    {
+            //        result[j, i] = result[i, j];
+            //    }
+            //}
+
 #if DEBUG
-            WriteLine($"MGE: ");
+            bool symmetric = true;
+            bool diag = true;
+            for (int i = 0; i < 60; ++i)
+            {
+                if (result[i,i] < 0)
+                {
+                    diag = false;
+                }
+                for (int j = 0; j < i; ++j)
+                {
+                    if (result[i, j] != result[j, i])
+                    {
+                        symmetric = false;
+                    }
+                }
+            }
+            
+            WriteLine($"MGE ({symmetric} {diag}): ");
             for (int i = 0; i < 60; ++i)
             {
                 for (int j = 0; j < 60; ++j)
@@ -463,7 +524,7 @@ namespace WpfApp1
         }
 
         // TODO: calculate FE
-        private double[] CalculateFE(int feIndex, int feCount, int feCountUnderPressure, double[,,] DPSITE, int[,] ZP, int[,] NT, Point3D[] AKT)
+        private double[] CalculateFE(int feIndex, int feCount, int feCountUnderPressure, double[,,] DPSITE, double[,] ZP, int[,] NT, Point3D[] AKT)
         {
             var result = new double[60];
             if (feIndex < feCount - feCountUnderPressure)
@@ -504,7 +565,7 @@ namespace WpfApp1
                 }
             }
 
-            var zpMap = new Dictionary<int, int>();
+            var zpMap = new Dictionary<double, int>();
             for (int i = 0; i < ZP.GetLength(0); i++)
             {
                 zpMap.Add(ZP[i, 0], i);                    // global point index - index in ZP
@@ -521,14 +582,15 @@ namespace WpfApp1
             var Cs = Constants.Cs;
             for (int i = 0; i < 8; ++i)
             {
-                    int cg = 0;
+                    //int cg = 2;
                     double localSum = 0.0;
                     for (int m = 0; m < 3; ++m)
                     {
                         for (int n = 2; n < 3; ++n)
                         {
-                            localSum += Cs[m] * Cs[n];
-                            ++cg;
+                            int cg = m * 3 + n;
+                        localSum += Cs[m] * Cs[n];// * GenerateDPSITE.PHIs[i](gaussianNodes[cg, 0], gaussianNodes[cg, 1]);
+                            //cg += 3;
                         }
                     }
 
