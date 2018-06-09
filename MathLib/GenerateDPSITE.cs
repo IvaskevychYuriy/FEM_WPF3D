@@ -100,5 +100,18 @@ namespace MathLib
             }
             return result;
         }
+
+        public static Tuple<int, int>[] niti = GetNiTi();
+        public static Func<double, double, double>[] PHIs = new Func<double, double, double>[]
+        {
+            (n, t) => 1/4 * (1 + n * niti[0].Item1) * (1 + t * niti[0].Item2) * (n * niti[0].Item1 + t * niti[0].Item2 - 1),
+            (n, t) => 1/4 * (1 + n * niti[1].Item1) * (1 + t * niti[1].Item2) * (n * niti[1].Item1 + t * niti[1].Item2 - 1),
+            (n, t) => 1/4 * (1 + n * niti[2].Item1) * (1 + t * niti[2].Item2) * (n * niti[2].Item1 + t * niti[2].Item2 - 1),
+            (n, t) => 1/4 * (1 + n * niti[3].Item1) * (1 + t * niti[3].Item2) * (n * niti[3].Item1 + t * niti[3].Item2 - 1),
+            (n, t) => 1/2 * (1 - n * n) * (1 + t * niti[4].Item2),
+            (n, t) => 1/2 * (1 - t * t) * (1 + n * niti[5].Item1),
+            (n, t) => 1/2 * (1 - n * n) * (1 + t * niti[6].Item2),
+            (n, t) => 1/2 * (1 - t * t) * (1 + n * niti[7].Item1),
+        };
     }
 }

@@ -1,0 +1,88 @@
+<html>
+
+<head>
+    <title>My first Three.js app</title>
+    <style>
+        canvas {
+            width: 100%;
+            height: 100%
+        }
+    </style>
+
+    <SCRIPT src="https://rawgithub.com/mrdoob/three.js/master/build/three.js"></SCRIPT>
+    <script src="js/CanvasRenderer.js"></script>
+    <script src="js/TrackballControls.js"></script>
+
+</head>
+
+<body>
+    <script>
+        var controls, camera, renderer, scene, geometry, material, mesh;
+
+        var x = 2;
+        var y = 1;
+        var z = 2;
+
+        init();
+        animate();
+
+        function init() {
+            camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 2000 );
+            camera.position.set(0,-300,10);
+
+            controls = new THREE.TrackballControls(camera);
+            controls.addEventListener('change', render);
+            scene = new THREE.Scene();
+
+            scene.position.set( -50, -50, -50 );
+            
+
+            var color = new THREE.Color("rgb(255, 0, 0)");
+            geometry = new THREE.SphereGeometry(0.8, 0.8, 0.8);
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', 'http://localhost:51766/api/result', false);
+            xhr.send();
+            
+
+            var response = JSON.parse(xhr.responseText);
+
+            console.log(response);
+
+            response.start.forEach(function (element) {
+                material = new THREE.MeshBasicMaterial({ color: color });
+                mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(element.x, element.y, element.z);
+                scene.add(mesh);
+            });
+
+            response.end.forEach(function (element) {
+                material = new THREE.MeshBasicMaterial({ color: 0x00CCFF });
+                mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(element.x, element.y, element.z);
+                scene.add(mesh);
+            });
+
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0xDDDDDD, 1);
+            document.body.appendChild(renderer.domElement);
+        }
+
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            console.log(camera.position.x + " " + camera.position.y + " " + camera.position.x);
+            render();
+        }
+
+        function render() {
+            renderer.render(scene, camera);
+        }
+
+    </script>
+</body>
+
+</html>
