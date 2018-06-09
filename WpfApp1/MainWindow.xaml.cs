@@ -171,12 +171,27 @@ namespace WpfApp1
         // functions for dimensions for i >= 8
         private Func<Point3D, Point3D, double>[] Dphis2 = new Func<Point3D, Point3D, double>[3]
         {
-            //(Point3D p, Point3D pi) => (1 + p.Y * pi.Y) * (1 + p.Z * pi.Z) * (pi.Y * pi.Z * pi.Z + pi.X * pi.X * (pi.Y * pi.Y * p.Z + p.Y * pi.Z * pi.Z) + pi.X * (2 * pi.Y * p.X * pi.Z * pi.Z - 1)) / -4.0,
-            //(Point3D p, Point3D pi) => (1 + p.X * pi.X) * (1 + p.Z * pi.Z) * (pi.X * pi.Y * pi.Y * pi.Y * p.Z + pi.X * pi.Z * pi.Z + p.X * pi.Y * pi.Y * pi.Z * pi.Z + pi.Y * (2 * pi.X * p.Y * pi.Z * pi.Z - 1)) / -4.0,
-            //(Point3D p, Point3D pi) => (1 + p.X * pi.X) * (1 + p.Y * pi.Y) * (pi.X * p.Y * pi.Z * pi.Z * pi.Z + pi.X * pi.Y * pi.Y * (1 + 2 * p.Z * pi.Z) + pi.Z * (p.X * pi.Y * pi.Z * pi.Z - 1)) / -4.0
-            (Point3D p, Point3D pi) => (1 + pi.Y * p.Y) * (1 + pi.Z * p.Z) * (pi.Y * pi.Z * pi.Z + pi.X * (2 * pi.Y * pi.Z * pi.Z * p.X - 1) + pi.X * pi.X * (pi.Z * pi.Z * p.Y + pi.Y * pi.Y * p.Z)) / -4.0,
-            (Point3D p, Point3D pi) => (1 + pi.X * p.X) * (1 + pi.Z * p.Z) * (pi.X * pi.Z * pi.Z + pi.Y * pi.Y * pi.Z * pi.Z * p.X + pi.Y * (2 * pi.X * pi.Z * pi.Z * p.Y - 1) + pi.X * pi.Y * pi.Y * pi.Y * p.Z) / -4.0,
-            (Point3D p, Point3D pi) => (1 + pi.X * p.X) * (1 + pi.Y * p.Y) * (pi.Z * (pi.Y * pi.Z * pi.Z * p.X - 1) + pi.X * pi.Z * pi.Z * pi.Z * p.Y + pi.X * pi.Y * pi.Y * (1 + 2 * pi.Z * p.Z)) / -4.0
+            (Point3D p, Point3D pi) => //(1 + pi.Y * p.Y) * (1 + pi.Z * p.Z) * (pi.Y * pi.Z * pi.Z + pi.X * (2 * pi.Y * pi.Z * pi.Z * p.X - 1) + pi.X * pi.X * (pi.Z * pi.Z * p.Y + pi.Y * pi.Y * p.Z)) / -4.0
+            1/4 *
+                (1 + pi.Y * p.Y) *
+                (1 + pi.Z * p.Z) *
+                (pi.X * (1 - Math.Pow((p.X * pi.Y * pi.Z), 2) - Math.Pow((p.Y * pi.X * pi.Z), 2) - Math.Pow((p.Z * pi.X * pi.Y), 2)) -
+                  2 * p.X * Math.Pow((pi.Y * pi.Z), 2) * (1 + p.X * pi.X))
+            
+            ,
+            (Point3D p, Point3D pi) => //(1 + pi.X * p.X) * (1 + pi.Z * p.Z) * (pi.X * pi.Z * pi.Z + pi.Y * pi.Y * pi.Z * pi.Z * p.X + pi.Y * (2 * pi.X * pi.Z * pi.Z * p.Y - 1) + pi.X * pi.Y * pi.Y * pi.Y * p.Z) / -4.0
+            1/4 *
+                (1 + pi.X * p.X) *
+                (1 + pi.Z * p.Z) *
+                (pi.Y * (1 - Math.Pow((p.X * pi.Y * pi.Z), 2) - Math.Pow((p.Y * pi.X * pi.Z), 2) - Math.Pow((p.Z * pi.X * pi.Y), 2)) -
+                  2 * p.Y * Math.Pow((pi.X * pi.Z), 2) * (1 + p.Y * pi.Y))
+            ,
+            (Point3D p, Point3D pi) => //(1 + pi.X * p.X) * (1 + pi.Y * p.Y) * (pi.Z * (pi.Y * pi.Z * pi.Z * p.X - 1) + pi.X * pi.Z * pi.Z * pi.Z * p.Y + pi.X * pi.Y * pi.Y * (1 + 2 * pi.Z * p.Z)) / -4.0
+            1/4 *
+                (1 + pi.X * p.X) *
+                (1 + pi.Y * p.Y) *
+                (p.Z * (1 - Math.Pow((p.X * pi.Y * pi.Z), 2) - Math.Pow((p.Y * pi.X * pi.Z), 2) - Math.Pow((p.Z * pi.X * pi.Y), 2)) -
+                  2 * p.Z * Math.Pow((pi.X * pi.Y), 2) * (1 + p.Z * pi.Z))
         };
 
         private double[,,] GenerateDFIABG()
