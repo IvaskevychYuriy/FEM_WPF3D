@@ -40,13 +40,13 @@ namespace MathLib
             {
                 return 1 / 4 * nt[j].Item1 * (nt[j].Item2 * p2 + 1) * (2 * nt[j].Item1 * p1 + nt[j].Item2 * p2);
             }
-            else if (j == 5 || j == 7)
+            else if (j == 4 || j == 6)
             {
-                return nt[j].Item2 * p2 * p1 + p1;
+                return -p1 * (nt[j].Item2 * p2 + 1);
             }
             else
             {
-                return 1 / 2 * nt[j].Item1 * (p2 * p2 + 1);
+                return 1 / 2 * nt[j].Item1 * (1 - p2 * p2);
             }
         }
 
@@ -58,13 +58,13 @@ namespace MathLib
             {
                 return 1 / 4 * nt[j].Item2 * (nt[j].Item1 * p1 + 1) * (2 * nt[j].Item2 * p2 + nt[j].Item1 * p1);
             }
-            else if (j == 5 || j == 7)
+            else if (j == 4 || j == 6)
             {
-                return 1 / 2 * nt[j].Item2 * (p1 * p1 + 1);
+                return 1 / 2 * nt[j].Item2 * (1 - p1 * p1);
             }
             else
             {
-                return nt[j].Item1 * p2 * p1 + p2;
+                return -p2 * (nt[j].Item1 * p1 + 1);
             }
         }
 
