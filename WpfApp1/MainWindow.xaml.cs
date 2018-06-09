@@ -35,9 +35,9 @@ namespace WpfApp1
             const int ny = 1;
             const int nz = 1;
 
-            const int ax = 2;
-            const int ay = 2;
-            const int az = 2;
+            const int ax = 1;
+            const int ay = 1;
+            const int az = 1;
 
             // initial points array
             var AKT = GenerateAKT(nx, ny, nz, ax, ay, az);
@@ -171,9 +171,12 @@ namespace WpfApp1
         // functions for dimensions for i >= 8
         private Func<Point3D, Point3D, double>[] Dphis2 = new Func<Point3D, Point3D, double>[3]
         {
-            (Point3D p, Point3D pi) => (1 + p.Y * pi.Y) * (1 + p.Z * pi.Z) * (pi.Y * pi.Z * pi.Z + pi.X * pi.X * (pi.Y * pi.Y * p.Z + p.Y * pi.Z * pi.Z) + pi.X * (2 * pi.Y * p.X * pi.Z * pi.Z - 1)) / -4.0,
-            (Point3D p, Point3D pi) => (1 + p.X * pi.X) * (1 + p.Z * pi.Z) * (pi.X * pi.Y * pi.Y * pi.Y * p.Z + pi.X * pi.Z * pi.Z + p.X * pi.Y * pi.Y * pi.Z * pi.Z + pi.Y * (2 * pi.X * p.Y * pi.Z * pi.Z - 1)) / -4.0,
-            (Point3D p, Point3D pi) => (1 + p.X * pi.X) * (1 + p.Y * pi.Y) * (pi.X * p.Y * pi.Z * pi.Z * pi.Z + pi.X * pi.Y * pi.Y * (1 + 2 * p.Z * pi.Z) + pi.Z * (p.X * pi.Y * pi.Z * pi.Z - 1)) / -4.0
+            //(Point3D p, Point3D pi) => (1 + p.Y * pi.Y) * (1 + p.Z * pi.Z) * (pi.Y * pi.Z * pi.Z + pi.X * pi.X * (pi.Y * pi.Y * p.Z + p.Y * pi.Z * pi.Z) + pi.X * (2 * pi.Y * p.X * pi.Z * pi.Z - 1)) / -4.0,
+            //(Point3D p, Point3D pi) => (1 + p.X * pi.X) * (1 + p.Z * pi.Z) * (pi.X * pi.Y * pi.Y * pi.Y * p.Z + pi.X * pi.Z * pi.Z + p.X * pi.Y * pi.Y * pi.Z * pi.Z + pi.Y * (2 * pi.X * p.Y * pi.Z * pi.Z - 1)) / -4.0,
+            //(Point3D p, Point3D pi) => (1 + p.X * pi.X) * (1 + p.Y * pi.Y) * (pi.X * p.Y * pi.Z * pi.Z * pi.Z + pi.X * pi.Y * pi.Y * (1 + 2 * p.Z * pi.Z) + pi.Z * (p.X * pi.Y * pi.Z * pi.Z - 1)) / -4.0
+            (Point3D p, Point3D pi) => (1 + pi.Y * p.Y) * (1 + pi.Z * p.Z) * (pi.Y * pi.Z * pi.Z + pi.X * (2 * pi.Y * pi.Z * pi.Z * p.X - 1) + pi.X * pi.X * (pi.Z * pi.Z * p.Y + pi.Y * pi.Y * p.Z)) / -4.0,
+            (Point3D p, Point3D pi) => (1 + pi.X * p.X) * (1 + pi.Z * p.Z) * (pi.X * pi.Z * pi.Z + pi.Y * pi.Y * pi.Z * pi.Z * p.X + pi.Y * (2 * pi.X * pi.Z * pi.Z * p.Y - 1) + pi.X * pi.Y * pi.Y * pi.Y * p.Z) / -4.0,
+            (Point3D p, Point3D pi) => (1 + pi.X * p.X) * (1 + pi.Y * p.Y) * (pi.Z * (pi.Y * pi.Z * pi.Z * p.X - 1) + pi.X * pi.Z * pi.Z * pi.Z * p.Y + pi.X * pi.Y * pi.Y * (1 + 2 * pi.Z * p.Z)) / -4.0
         };
 
         private double[,,] GenerateDFIABG()
@@ -286,21 +289,21 @@ namespace WpfApp1
             for (int cg = 0; cg < 27; ++cg)             // gauss points
             {
                 var p = gaussPoints[cg];
-                for (int d = 0; d < 3; ++d)             // dimension
+                //for (int d = 0; d < 3; ++d)             // dimension
                 {
                     for (int i = 0; i < 20; ++i)        // functions
                     {
-                        var pi = AKT[NT[i, feIndex]];   // use NT to lookup global point using feIndex and i
-                        var funcArray = i < 8 ? Dphis1 : Dphis2;
-                        result[cg, i, d] = funcArray[d](p, pi);
+                        //var pi = AKT[NT[i, feIndex]];   // use NT to lookup global point using feIndex and i
+                        //var funcArray = i < 8 ? Dphis1 : Dphis2;
+                        //result[cg, i, d] = funcArray[d](p, pi);
 
                         // uncomment to unroll NaN version
-                        //var b = new double[] { DFIABG[cg, 0, i], DFIABG[cg, 1, i], DFIABG[cg, 2, i] };
-                        //var res = GaussianElimination(CalculateD(DXYZABG, cg), b);
-                        //for (int d = 0; d < 3; ++d)
-                        //{
-                        //    result[cg, i, d] = res[d];
-                        //}
+                        var b = new double[] { DFIABG[cg, 0, i], DFIABG[cg, 1, i], DFIABG[cg, 2, i] };
+                        var res = GaussianElimination(CalculateD(DXYZABG, cg), b);
+                        for (int d = 0; d < 3; ++d)
+                        {
+                            result[cg, i, d] = res[d];
+                        }
                     }
                 }
             }
@@ -563,6 +566,7 @@ namespace WpfApp1
                 zpMap.Add(ZP[i, 0], i);                    // global point index - index in ZP
             }
 
+            var pressedLocalPoints = new int[] { 4, 5, 6, 7, 16, 17, 18, 19 };
             int startIndex = 60 - 24 + 2;               // third (for Z-coord) starting from last 24 in all FE (60)
             var Cs = Constants.Cs;
             for (int i = 0; i < 8; ++i)
@@ -577,7 +581,7 @@ namespace WpfApp1
                     }
                 }
 
-                result[startIndex] = localSum * ZP[zpMap[NT[i + 12, feIndex]], 2] * (derivatives[0, 0] * derivatives[1, 1] - derivatives[1, 0] * derivatives[0, 1]);
+                result[startIndex] = localSum * ZP[zpMap[NT[pressedLocalPoints[i], feIndex]], 2] * (derivatives[0, 0] * derivatives[1, 1] - derivatives[1, 0] * derivatives[0, 1]);
                 startIndex += 3;
             }
 
