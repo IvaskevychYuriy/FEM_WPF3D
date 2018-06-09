@@ -336,13 +336,13 @@ namespace WpfApp1
 
             // calculate DXYZABG itself
             var result = new double[3, 3, 27];
-            for (int gd = 0; gd < 3; ++gd)                 // global coord
+            for (int cg = 0; cg < 27; ++cg)        // gauss points // move outside
             {
-                var p = gaussPoints[gd];
                 for (int ld = 0; ld < 3; ++ld)             // local coord
                 {
-                    for (int cg = 0; cg < 27; ++cg)        // gauss points
+                    for (int gd = 0; gd < 3; ++gd)                 // global coord
                     {
+                        var p = gaussPoints[gd];
                         var getter = globalValuesGetters[gd];
                         double localSum = 0.0;
                         for (int i = 0; i < 20; ++i)       // functions
@@ -484,14 +484,6 @@ namespace WpfApp1
                 }
             }
 
-            //for (int i = 0; i < 60; ++i)
-            //{
-            //    for (int j = 0; j < i; ++j)
-            //    {
-            //        result[j, i] = result[i, j];
-            //    }
-            //}
-
 #if DEBUG
             bool symmetric = true;
             bool diag = true;
@@ -571,28 +563,19 @@ namespace WpfApp1
                 zpMap.Add(ZP[i, 0], i);                    // global point index - index in ZP
             }
 
-            //var pFunctors = new Func<int, double>[]
-            //{
-            //    (li) => 0,                              // Px
-            //    (li) => 0,                              // Py
-            //    (li) =>    // Pz - force applied to that point according to ZP
-            //};
-
             int startIndex = 60 - 24 + 2;               // third (for Z-coord) starting from last 24 in all FE (60)
             var Cs = Constants.Cs;
             for (int i = 0; i < 8; ++i)
             {
-                    //int cg = 2;
-                    double localSum = 0.0;
-                    for (int m = 0; m < 3; ++m)
+                double localSum = 0.0;
+                for (int m = 0; m < 3; ++m)
+                {
+                    for (int n = 2; n < 3; ++n)
                     {
-                        for (int n = 2; n < 3; ++n)
-                        {
-                            int cg = m * 3 + n;
+                        int cg = m * 3 + n;
                         localSum += Cs[m] * Cs[n];// * GenerateDPSITE.PHIs[i](gaussianNodes[cg, 0], gaussianNodes[cg, 1]);
-                            //cg += 3;
-                        }
                     }
+                }
 
                 result[startIndex] = localSum * ZP[zpMap[NT[i + 12, feIndex]], 2] * (derivatives[0, 0] * derivatives[1, 1] - derivatives[1, 0] * derivatives[0, 1]);
                 startIndex += 3;
