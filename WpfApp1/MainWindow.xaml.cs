@@ -478,6 +478,11 @@ namespace WpfApp1
                 for (int aj = 0; aj < 3; ++aj)
                 {
                     var a = As[ai, aj];
+                    if (a == null)
+                    {
+                        continue;
+                    }
+
                     for (int i = 0; i < 20; ++i)
                     {
                         for (int j = 0; j < 20; ++j)
@@ -499,6 +504,14 @@ namespace WpfApp1
                             result[ai * 20 + i, aj * 20 + j] = res;
                         }
                     }
+                }
+            }
+
+            for (int i = 0; i < 60; ++i)
+            {
+                for (int j = 0; j < i; ++j)
+                {
+                    result[i, j] = result[j, i];
                 }
             }
 
