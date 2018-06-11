@@ -163,16 +163,16 @@ namespace WpfApp1
         // functions for dimensions for i < 8
         private Func<Point3D, Point3D, double>[] Dphis1 = new Func<Point3D, Point3D, double>[3]
         {
-            (Point3D p, Point3D pi) => pi.X * (1 + p.Y * pi.Y) * (1 + p.Z * pi.Z) * (2 * p.X * pi.X + p.Y * pi.Y + p.Z * pi.Z - 1) / 8.0,
-            (Point3D p, Point3D pi) => pi.Y * (1 + p.X * pi.X) * (1 + p.Z * pi.Z) * (2 * p.Y * pi.Y + p.X * pi.X + p.Z * pi.Z - 1) / 8.0,
-            (Point3D p, Point3D pi) => pi.Z * (1 + p.X * pi.X) * (1 + p.Y * pi.Y) * (2 * p.Z * pi.Z + p.X * pi.X + p.Y * pi.Y - 1) / 8.0
+            (Point3D p, Point3D pi) => 0.125 * pi.X * (1 + p.Y * pi.Y) * (1 + p.Z * pi.Z) * (2 * p.X * pi.X + p.Y * pi.Y + p.Z * pi.Z - 1),
+            (Point3D p, Point3D pi) => 0.125 * pi.Y * (1 + p.X * pi.X) * (1 + p.Z * pi.Z) * (2 * p.Y * pi.Y + p.X * pi.X + p.Z * pi.Z - 1),
+            (Point3D p, Point3D pi) => 0.125 * pi.Z * (1 + p.X * pi.X) * (1 + p.Y * pi.Y) * (2 * p.Z * pi.Z + p.X * pi.X + p.Y * pi.Y - 1)
         };
 
         // functions for dimensions for i >= 8
         private Func<Point3D, Point3D, double>[] Dphis2 = new Func<Point3D, Point3D, double>[3]
         {
             (Point3D p, Point3D pi) => //(1 + pi.Y * p.Y) * (1 + pi.Z * p.Z) * (pi.Y * pi.Z * pi.Z + pi.X * (2 * pi.Y * pi.Z * pi.Z * p.X - 1) + pi.X * pi.X * (pi.Z * pi.Z * p.Y + pi.Y * pi.Y * p.Z)) / -4.0
-            1/4 *
+            0.25 *
                 (1 + pi.Y * p.Y) *
                 (1 + pi.Z * p.Z) *
                 (pi.X * (1 - Math.Pow((p.X * pi.Y * pi.Z), 2) - Math.Pow((p.Y * pi.X * pi.Z), 2) - Math.Pow((p.Z * pi.X * pi.Y), 2)) -
@@ -180,17 +180,17 @@ namespace WpfApp1
             
             ,
             (Point3D p, Point3D pi) => //(1 + pi.X * p.X) * (1 + pi.Z * p.Z) * (pi.X * pi.Z * pi.Z + pi.Y * pi.Y * pi.Z * pi.Z * p.X + pi.Y * (2 * pi.X * pi.Z * pi.Z * p.Y - 1) + pi.X * pi.Y * pi.Y * pi.Y * p.Z) / -4.0
-            1/4 *
+            0.25 *
                 (1 + pi.X * p.X) *
                 (1 + pi.Z * p.Z) *
                 (pi.Y * (1 - Math.Pow((p.X * pi.Y * pi.Z), 2) - Math.Pow((p.Y * pi.X * pi.Z), 2) - Math.Pow((p.Z * pi.X * pi.Y), 2)) -
                   2 * p.Y * Math.Pow((pi.X * pi.Z), 2) * (1 + p.Y * pi.Y))
             ,
             (Point3D p, Point3D pi) => //(1 + pi.X * p.X) * (1 + pi.Y * p.Y) * (pi.Z * (pi.Y * pi.Z * pi.Z * p.X - 1) + pi.X * pi.Z * pi.Z * pi.Z * p.Y + pi.X * pi.Y * pi.Y * (1 + 2 * pi.Z * p.Z)) / -4.0
-            1/4 *
+            0.25 *
                 (1 + pi.X * p.X) *
                 (1 + pi.Y * p.Y) *
-                (p.Z * (1 - Math.Pow((p.X * pi.Y * pi.Z), 2) - Math.Pow((p.Y * pi.X * pi.Z), 2) - Math.Pow((p.Z * pi.X * pi.Y), 2)) -
+                (pi.Z * (1 - Math.Pow((p.X * pi.Y * pi.Z), 2) - Math.Pow((p.Y * pi.X * pi.Z), 2) - Math.Pow((p.Z * pi.X * pi.Y), 2)) -
                   2 * p.Z * Math.Pow((pi.X * pi.Y), 2) * (1 + p.Z * pi.Z))
         };
 
@@ -354,14 +354,14 @@ namespace WpfApp1
 
             // calculate DXYZABG itself
             var result = new double[3, 3, 27];
-            for (int cg = 0; cg < 27; ++cg)        // gauss points // move outside
+            for (int gd = 0; gd < 3; ++gd)                 // global coord
             {
+                var p = gaussPoints[gd];
+                var getter = globalValuesGetters[gd];
                 for (int ld = 0; ld < 3; ++ld)             // local coord
                 {
-                    for (int gd = 0; gd < 3; ++gd)                 // global coord
+                    for (int cg = 0; cg < 27; ++cg)        // gauss points // move outside
                     {
-                        var p = gaussPoints[gd];
-                        var getter = globalValuesGetters[gd];
                         double localSum = 0.0;
                         for (int i = 0; i < 20; ++i)       // functions
                         {
