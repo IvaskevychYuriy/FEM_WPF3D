@@ -360,7 +360,7 @@ namespace WpfApp1
                 var getter = globalValuesGetters[gd];
                 for (int ld = 0; ld < 3; ++ld)             // local coord
                 {
-                    for (int cg = 0; cg < 27; ++cg)        // gauss points // move outside
+                    for (int cg = 0; cg < 27; ++cg)        // gauss points
                     {
                         double localSum = 0.0;
                         for (int i = 0; i < 20; ++i)       // functions
@@ -490,7 +490,7 @@ namespace WpfApp1
                                 {
                                     for (int k = 0; k < 3; ++k)
                                     {
-                                        res += Cs[m] * Cs[n] * Cs[k] * a(i, j, cg) * DJ[cg];
+                                        res += Cs[m] * Cs[n] * Cs[k] * a(i, j, cg) * Math.Abs(DJ[cg]);
                                         ++cg;
                                     }
                                 }

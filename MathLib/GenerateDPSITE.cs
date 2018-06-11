@@ -74,7 +74,7 @@ namespace MathLib
             var result = new Tuple<int, int>[8];
             result[0] = new Tuple<int, int>(-1, -1);
             result[1] = new Tuple<int, int>(1, -1);
-            result[2] = new Tuple<int, int>(1, -1);
+            result[2] = new Tuple<int, int>(1, 1);
             result[3] = new Tuple<int, int>(-1, 1);
             result[4] = new Tuple<int, int>(0, -1);
             result[5] = new Tuple<int, int>(1, 0);
