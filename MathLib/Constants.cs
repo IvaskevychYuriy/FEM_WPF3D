@@ -11,6 +11,8 @@ namespace MathLib
 
         public static double[] Xs { get; } = new double[] { -Math.Sqrt(0.6), 0, Math.Sqrt(0.6) };
 
+        public static int[] PressedLocalPoints = new int[] { 4, 5, 6, 7, 16, 17, 18, 19 };
+
         public static Point3D[] GaussianStandardCubePoints { get; } = new Point3D[20]
         {
             // NaN version

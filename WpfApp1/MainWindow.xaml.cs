@@ -2,7 +2,6 @@
 using MathLib;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Media;
@@ -56,10 +55,7 @@ namespace WpfApp1
             FixMG(MG, ZU);
 
             var U = GaussianElimination(MG, F);
-            Func<double, double> t = x => (x < -10 ? -10 : (x > 10 ? 10 : x));
-            var result = AddTranslation(AKT, U)
-                .Select(p => new Point3D(t(p.X), t(p.Y), t(p.Z)))
-                .ToArray();
+            var result = AddTranslation(AKT, U);
             RenderResult(result);
         }
 
@@ -279,6 +275,9 @@ namespace WpfApp1
 
         private void UpdateMGF(double[,] MG, double[] F, double[,] MGE, double[] FE, int[,] NT, int feIndex)
         {
+            var pressedLocalPoints = Constants.PressedLocalPoints;
+
+            // update MG
             for (int i = 0; i < 60; ++i)
             {
                 int di = i / 20;                    // dimension (x,y or z) for row
@@ -290,8 +289,14 @@ namespace WpfApp1
 
                     MG[3 * gi + di, 3 * gj + dj] = MGE[i, j];
                 }
+            }
 
-                F[3 * gi + di] = FE[i];
+            // update F
+            int startIndex = 60 - 24 + 2;           // third (for Z-coord) starting from last 24 in all FE (60)
+            for (int i = 0; i < pressedLocalPoints.Length; ++i)
+            {
+                F[NT[pressedLocalPoints[i], feIndex] * 3 + 2] += FE[startIndex]; // z-coords only
+                startIndex += 3;
             }
         }
 
@@ -572,22 +577,26 @@ namespace WpfApp1
                 p => p.Y,
                 p => p.Z
             };
-            
+
+            var pressedLocalPoints = Constants.PressedLocalPoints;
             var gaussianNodes = GenerateDPSITE.GetGaussNode();
-            var derivatives = new double[3, 2];                 // dxyz / dnt, TODO: move to constants
+            var derivatives = new double[3, 2, 9];                 // dxyz / dnt, TODO: move to constants
             for (int d1 = 0; d1 < 3; ++d1)                      // 1st dimention (x, y, z)
             {
                 for (int d2 = 0; d2 < 2; ++d2)                  // 2nd dimention (n, t)
                 {
-                    double localSum = 0.0;
-                    for (int i = 0; i < 8; ++i)
+                    for (int gp = 0; gp < 9; gp++)
                     {
-                        var globalPoint = AKT[NT[12 + i, feIndex]];
-                        double coordValue = globalCoordGetters[d1](globalPoint);
-                        localSum += coordValue * dPsiFunctors[d2](i);
-                    }
+                        double localSum = 0.0;
+                        for (int i = 0; i < 8; ++i)
+                        {
+                            var globalPoint = AKT[NT[pressedLocalPoints[i], feIndex]];
+                            double coordValue = globalCoordGetters[d1](globalPoint);
+                            localSum += coordValue * DPSITE[gp, d2, i];
+                        }
 
-                    derivatives[d1, d2] = localSum;
+                        derivatives[d1, d2, gp] = localSum;
+                    }
                 }
             }
 
@@ -597,22 +606,22 @@ namespace WpfApp1
                 zpMap.Add(ZP[i, 0], i);                    // global point index - index in ZP
             }
 
-            var pressedLocalPoints = new int[] { 4, 5, 6, 7, 16, 17, 18, 19 };
             int startIndex = 60 - 24 + 2;               // third (for Z-coord) starting from last 24 in all FE (60)
             var Cs = Constants.Cs;
+            double presure = -0.3; // TODO: replace with ZP values
             for (int i = 0; i < 8; ++i)
             {
                 double localSum = 0.0;
                 for (int m = 0; m < 3; ++m)
                 {
-                    for (int n = 2; n < 3; ++n)
+                    for (int n = 0; n < 3; ++n)
                     {
                         int cg = m * 3 + n;
-                        localSum += Cs[m] * Cs[n];// * GenerateDPSITE.PHIs[i](gaussianNodes[cg, 0], gaussianNodes[cg, 1]);
+                        localSum += Cs[m] * Cs[n] * presure * (derivatives[0, 0, cg] * derivatives[1, 1, cg] - derivatives[1, 0, cg] * derivatives[0, 1, cg]) * GenerateDPSITE.PHIs[i](gaussianNodes[cg, 0], gaussianNodes[cg, 1]);
                     }
                 }
 
-                result[startIndex] = localSum * ZP[zpMap[NT[pressedLocalPoints[i], feIndex]], 2] * (derivatives[0, 0] * derivatives[1, 1] - derivatives[1, 0] * derivatives[0, 1]);
+                result[startIndex] = localSum;
                 startIndex += 3;
             }
 
@@ -623,9 +632,7 @@ namespace WpfApp1
                 WriteLine(result[i]);
             }
 #endif
-
-
-
+            
             return result;
         }
 
@@ -782,11 +789,11 @@ namespace WpfApp1
 
         private void Write(string str)
         {
-                using (var s = new System.IO.StreamWriter(System.IO.Path.Combine("../../", "test-" + Id + ".txt"), true))
-                {
-                    s.Write(str);
-                    s.Flush();
-                }
+            using (var s = new System.IO.StreamWriter(System.IO.Path.Combine("../../", "test-" + Id + ".txt"), true))
+            {
+                s.Write(str);
+                s.Flush();
+            }
         }
     }
 }
