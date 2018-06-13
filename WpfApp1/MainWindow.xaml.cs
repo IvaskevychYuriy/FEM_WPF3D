@@ -30,9 +30,9 @@ namespace WpfApp1
         {
             InitializeComponent();
 
-            const int nx = 1;
-            const int ny = 1;
-            const int nz = 1;
+            const int nx = 2;
+            const int ny = 2;
+            const int nz = 2;
 
             const int ax = 1;
             const int ay = 1;
@@ -287,7 +287,7 @@ namespace WpfApp1
                     int dj = j / 20;                // dimension (x,y or z) for col
                     int gj = NT[j % 20, feIndex];   // global index for col
 
-                    MG[3 * gi + di, 3 * gj + dj] = MGE[i, j];
+                    MG[3 * gi + di, 3 * gj + dj] += MGE[i, j];
                 }
             }
 
