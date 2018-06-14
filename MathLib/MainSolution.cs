@@ -10,29 +10,36 @@ namespace MathLib
 {
     public class MainSolution
     {
+        // deprecated
+        /*private const double LineDiameter = 0.05;
+        private const double LineInnerDiameter = 0;
+        private readonly Brush LineFill = Brushes.LightGray;
+        private const double VertRadius = 0.1;
 
         private const double E = 1.0;
-        private const double v = 1.0;
+        private const double v = 0.3;
         private const double l = E / ((1 + v) * (1 - 2 * v));
         private const double m = E / (2 * (1 + v));
+        private const double Pressure = -0.1;
 
         private readonly double LargeCoefficient = Math.Pow(10, 20);
 
+        public MainWindow()
+        {
+            InitializeComponent();
 
-        public Tuple<Point[], Point[]> Start()
-        { 
-            const int nx = 2;
-            const int ny = 2;
-            const int nz = 2;
+            const int nx = 1;
+            const int ny = 1;
+            const int nz = 1;
 
-            const int ax = 100;
-            const int ay = 100;
-            const int az = 100;
+            const int ax = 1;
+            const int ay = 1;
+            const int az = 1;
 
             // initial points array
             var AKT = GenerateAKT(nx, ny, nz, ax, ay, az);
+            Render(AKT);
 
-            // TODO: calculate NT
             var NT = GeneratorNP.Generate(globalToAKT, nx, ny, nz);
 
             // fixed points global coords (ZU) and force info (ZP)
@@ -42,19 +49,29 @@ namespace MathLib
             var DFIABG = GenerateDFIABG();
             var DPSITE = GenerateDPSITE.Generate();
 
-            var(MG, F) = ProcessElements(nx, ny, nz, AKT, NT, DFIABG, DPSITE, ZP);
+            var (MG, F) = ProcessElements(nx, ny, nz, AKT, NT, DFIABG, DPSITE, ZP);
             FixMG(MG, ZU);
 
             var U = GaussianElimination(MG, F);
             var result = AddTranslation(AKT, U);
-            return new Tuple<Point[], Point[]>(AKT, result);
+            RenderResult(result);
         }
 
+        private void Render(Point3D[] points)
+        {
+            // TODO: add edges
+            GenerateAndAddShapeToCollection(points, new int[] { }, Brushes.Blue, MainViewPort.Children);
+        }
 
+        private void RenderResult(Point3D[] points)
+        {
+            // TODO: add edges
+            GenerateAndAddShapeToCollection(points, new int[] { }, Brushes.Red, MainViewPort.Children);
+        }
 
         private static int[,,] globalToAKT;
 
-        private Point[] GenerateAKT(int nx, int ny, int nz, double ax, double ay, double az)
+        private Point3D[] GenerateAKT(int nx, int ny, int nz, double ax, double ay, double az)
         {
             double sx = ax / nx;
             double sy = ay / ny;
@@ -65,7 +82,7 @@ namespace MathLib
             int cxyz = cx * cy * cz;                          // 1x1 boxes vertex count
             int ce = (cx * nz + nx * cz) * cy + ny * cx * cz; // edges count
 
-            var points = new List<Point>();
+            var points = new Point3D[cxyz + ce];
             globalToAKT = new int[cx * 2 - 1, cy * 2 - 1, cz * 2 - 1];
 
             int i = 0;
@@ -80,14 +97,22 @@ namespace MathLib
                         {
                             globalToAKT[ix, iy, iz] = i;
 
-                            points.Add(new Point(ix * sx / 2.0, iy * sy / 2.0, iz * sz / 2.0));
+                            points[i] = new Point3D(ix * sx / 2.0, iy * sy / 2.0, iz * sz / 2.0);
                             i++;
                         }
                     }
                 }
             }
 
-            return points.ToArray();
+#if DEBUG
+            WriteLine("Initial points (AKT): ");
+            foreach (var p in points)
+            {
+                WriteLine(p);
+            }
+#endif
+
+            return points;
         }
 
         private int[] CalculateZU(int nx, int ny, int nz)
@@ -95,40 +120,72 @@ namespace MathLib
             // basically fixed points are just points on bottom (X-Y) plane, so the global coords are sequential
             int nzu = (nx * 2 + 1) * (ny + 1) + (nx + 1) * ny;
             var ZU = Enumerable.Range(0, nzu).ToArray();
+
+#if DEBUG
+            WriteLine("ZU: ");
+            WriteLine(string.Join("; ", ZU));
+#endif
+
             return ZU;
         }
 
-        private int[,] CalculateZP(int nx, int ny, int nz, int totalVertexCount)
+        private double[,] CalculateZP(int nx, int ny, int nz, int totalVertexCount)
         {
             // force is applied straight down at each vertext on the top plane
             int nep = (nx * 2 + 1) * (ny + 1) + (nx + 1) * ny;      // count of vertices on the top plane
-            var ZP = new int[nep, 3];
+            var ZP = new double[nep, 3];
 
             int startPoint = totalVertexCount - nep;
             for (int i = 0; i < nep; i++)
             {
                 ZP[i, 0] = startPoint + i;
                 ZP[i, 1] = 5;                                       // 5 is top most (6th) plane of 1x1 cube
-                ZP[i, 2] = 1;                                       // force applied
+                ZP[i, 2] = Pressure;
             }
+
+#if DEBUG
+            WriteLine("ZP: ");
+            for (int i = 0; i < nep; i++)
+            {
+                WriteLine($"{ZP[i, 0]}  {ZP[i, 1]}  {ZP[i, 2]}");
+            }
+#endif
 
             return ZP;
         }
 
         // functions for dimensions for i < 8
-        private Func<Point, Point, double>[] Dphis1 = new Func<Point, Point, double>[3]
+        private Func<Point3D, Point3D, double>[] Dphis1 = new Func<Point3D, Point3D, double>[3]
         {
-            (Point p, Point pi) => pi.X * (1 + p.Y * pi.Y) * (1 + p.Z * pi.Z) * (2 * p.X * pi.X + p.Y * pi.Y + p.Z * pi.Z - 1) / 8.0,
-            (Point p, Point pi) => pi.Y * (1 + p.X * pi.X) * (1 + p.Z * pi.Z) * (2 * p.Y * pi.Y + p.X * pi.X + p.Z * pi.Z - 1) / 8.0,
-            (Point p, Point pi) => pi.Z * (1 + p.X * pi.X) * (1 + p.Y * pi.Y) * (2 * p.Z * pi.Z + p.X * pi.X + p.Y * pi.Y - 1) / 8.0
+            (Point3D p, Point3D pi) => 0.125 * pi.X * (1 + p.Y * pi.Y) * (1 + p.Z * pi.Z) * (2 * p.X * pi.X + p.Y * pi.Y + p.Z * pi.Z - 1),
+            (Point3D p, Point3D pi) => 0.125 * pi.Y * (1 + p.X * pi.X) * (1 + p.Z * pi.Z) * (2 * p.Y * pi.Y + p.X * pi.X + p.Z * pi.Z - 1),
+            (Point3D p, Point3D pi) => 0.125 * pi.Z * (1 + p.X * pi.X) * (1 + p.Y * pi.Y) * (2 * p.Z * pi.Z + p.X * pi.X + p.Y * pi.Y - 1)
         };
 
         // functions for dimensions for i >= 8
-        private Func<Point, Point, double>[] Dphis2 = new Func<Point, Point, double>[3]
+        private Func<Point3D, Point3D, double>[] Dphis2 = new Func<Point3D, Point3D, double>[3]
         {
-            (Point p, Point pi) => (1 + p.Y * pi.Y) * (1 + p.Z * pi.Z) * (pi.Y * pi.Z * pi.Z + pi.X * pi.X * (pi.Y * pi.Y * p.Z + p.Y * pi.Z * pi.Z) + pi.X * (2 * pi.Y * p.X * pi.Z * pi.Z - 1)) / -4.0,
-            (Point p, Point pi) => (1 + p.X * pi.X) * (1 + p.Z * pi.Z) * (pi.X * pi.Y * pi.Y * pi.Y * p.Z + pi.X * pi.Z * pi.Z + p.X * pi.Y * pi.Y * pi.Z * pi.Z + pi.Y * (2 * pi.X * p.Y * pi.Z * pi.Z - 1)) / -4.0,
-            (Point p, Point pi) => (1 + p.X * pi.X) * (1 + p.Y * pi.Y) * (pi.X * p.Y * pi.Z * pi.Z * pi.Z + pi.X * pi.Y * pi.Y * (1 + 2 * p.Z * pi.Z) + pi.Z * (p.X * pi.Y * pi.Z * pi.Z - 1)) / -4.0
+            (Point3D p, Point3D pi) =>
+            0.25 *
+                (1 + pi.Y * p.Y) *
+                (1 + pi.Z * p.Z) *
+                (pi.X * (1 - Math.Pow((p.X * pi.Y * pi.Z), 2) - Math.Pow((p.Y * pi.X * pi.Z), 2) - Math.Pow((p.Z * pi.X * pi.Y), 2)) -
+                  2 * p.X * Math.Pow((pi.Y * pi.Z), 2) * (1 + p.X * pi.X))
+
+            ,
+            (Point3D p, Point3D pi) =>
+            0.25 *
+                (1 + pi.X * p.X) *
+                (1 + pi.Z * p.Z) *
+                (pi.Y * (1 - Math.Pow((p.X * pi.Y * pi.Z), 2) - Math.Pow((p.Y * pi.X * pi.Z), 2) - Math.Pow((p.Z * pi.X * pi.Y), 2)) -
+                  2 * p.Y * Math.Pow((pi.X * pi.Z), 2) * (1 + p.Y * pi.Y))
+            ,
+            (Point3D p, Point3D pi) =>
+            0.25 *
+                (1 + pi.X * p.X) *
+                (1 + pi.Y * p.Y) *
+                (pi.Z * (1 - Math.Pow((p.X * pi.Y * pi.Z), 2) - Math.Pow((p.Y * pi.X * pi.Z), 2) - Math.Pow((p.Z * pi.X * pi.Y), 2)) -
+                  2 * p.Z * Math.Pow((pi.X * pi.Y), 2) * (1 + p.Z * pi.Z))
         };
 
         private double[,,] GenerateDFIABG()
@@ -148,14 +205,29 @@ namespace MathLib
                     for (int i = 0; i < 20; ++i)        // functions
                     {
                         var funcArray = i < 8 ? Dphis1 : Dphis2;
-                        result[cg, d, i] = 0; //funcArray[d](p, points[i]);
+                        result[cg, d, i] = funcArray[d](p, points[i]);
                     }
                 }
             }
+
+#if DEBUG
+            WriteLine("DFIABG: ");
+            for (int cg = 0; cg < 27; ++cg)
+            {
+                for (int d = 0; d < 3; ++d)
+                {
+                    for (int i = 0; i < 20; ++i)
+                    {
+                        WriteLine(result[cg, d, i]);
+                    }
+                }
+            }
+#endif
+
             return result;
         }
 
-        private (double[,], double[]) ProcessElements(int nx, int ny, int nz, Point[] AKT, int[,] NT, double[,,] DFIABG, double[,,] DPSITE, int[,] ZP)
+        private (double[,], double[]) ProcessElements(int nx, int ny, int nz, Point3D[] AKT, int[,] NT, double[,,] DFIABG, double[,,] DPSITE, double[,] ZP)
         {
             int npq = AKT.Length;
             var MG = new double[3 * npq, 3 * npq];
@@ -164,38 +236,69 @@ namespace MathLib
             int ce = nx * ny * nz;
             for (int i = 0; i < ce; ++i)
             {
+#if DEBUG
+                WriteLine($"Processing element #{i}");
+#endif
 
-                var DFIXYZ = CalculateDFIXYZ(i, AKT, NT);
                 var DXYZABG = CalculateDXYZABG(i, AKT, NT, DFIABG);
+                var DFIXYZ = CalculateDFIXYZ(i, AKT, NT, DFIABG, DXYZABG);
                 var DJ = CalculateDJ(DXYZABG);
                 var MGE = CalculateMGE(DFIXYZ, DJ);
-                var FE = CalculateFE(i, ce, nx * ny, DPSITE, ZP, NT);
+                var FE = CalculateFE(i, ce, nx * ny, DPSITE, ZP, NT, AKT);
 
                 UpdateMGF(MG, F, MGE, FE, NT, i);
             }
+
+#if DEBUG
+            WriteLine($"MG: ");
+            for (int i = 0; i < 3 * npq; ++i)
+            {
+                for (int j = 0; j < 3 * npq; ++j)
+                {
+                    Write(MG[i, j] + " ");
+                }
+
+                WriteLine(string.Empty);
+            }
+
+            WriteLine($"F: ");
+            for (int i = 0; i < 3 * npq; ++i)
+            {
+                WriteLine(F[i]);
+            }
+#endif
 
             return (MG, F);
         }
 
         private void UpdateMGF(double[,] MG, double[] F, double[,] MGE, double[] FE, int[,] NT, int feIndex)
         {
+            var pressedLocalPoints = Constants.PressedLocalPoints;
+
+            // update MG
             for (int i = 0; i < 60; ++i)
             {
-                int di = i / 20;                    // dimension (x,y or z ) for row
+                int di = i / 20;                    // dimension (x,y or z) for row
                 int gi = NT[i % 20, feIndex];       // global index for row
                 for (int j = 0; j < 60; ++j)
                 {
-                    int dj = j / 20;                // dimension (x,y or z ) for col
+                    int dj = j / 20;                // dimension (x,y or z) for col
                     int gj = NT[j % 20, feIndex];   // global index for col
 
-                    MG[3 * gi + di, 3 * gj + dj] = MGE[i, j];
+                    MG[3 * gi + di, 3 * gj + dj] += MGE[i, j];
                 }
+            }
 
-                F[3 * gi + di] = FE[i];
+            // update F
+            int startIndex = 60 - 24 + 2;           // third (for Z-coord) starting from last 24 in all FE (60)
+            for (int i = 0; i < pressedLocalPoints.Length; ++i)
+            {
+                F[NT[pressedLocalPoints[i], feIndex] * 3 + 2] += FE[startIndex]; // z-coords only
+                startIndex += 3;
             }
         }
 
-        private double[,,] CalculateDFIXYZ(int feIndex, Point[] AKT, int[,] NT)
+        private double[,,] CalculateDFIXYZ(int feIndex, Point3D[] AKT, int[,] NT, double[,,] DFIABG, double[,,] DXYZABG)
         {
             var gaussPoints = Constants.GaussianAllCubePoints;
 
@@ -203,27 +306,43 @@ namespace MathLib
             var result = new double[27, 20, 3];
             for (int cg = 0; cg < 27; ++cg)             // gauss points
             {
-                var p = new Point(0, 0, 0);//gaussPoints[cg];
-                for (int d = 0; d < 3; ++d)             // dimension
+                var p = gaussPoints[cg];
                 {
                     for (int i = 0; i < 20; ++i)        // functions
                     {
-                        var pi = AKT[NT[i, feIndex]];   // use NT to lookup global point using feIndex and i
-                        var funcArray = i < 8 ? Dphis1 : Dphis2;
-                        result[cg, i, d] = funcArray[d](p, pi);
+                        var b = new double[] { DFIABG[cg, 0, i], DFIABG[cg, 1, i], DFIABG[cg, 2, i] };
+                        var res = GaussianElimination(CalculateD(DXYZABG, cg), b);
+                        for (int d = 0; d < 3; ++d)     // dimension
+                        {
+                            result[cg, i, d] = res[d];
+                        }
                     }
                 }
             }
+
+#if DEBUG
+            WriteLine($"DFIXYZ (feIndex = {feIndex}): ");
+            for (int cg = 0; cg < 27; ++cg)
+            {
+                for (int d = 0; d < 3; ++d)
+                {
+                    for (int i = 0; i < 20; ++i)
+                    {
+                        WriteLine(result[cg, i, d]);
+                    }
+                }
+            }
+#endif
 
             return result;
         }
 
 
-        private double[,,] CalculateDXYZABG(int feIndex, Point[] AKT, int[,] NT, double[,,] DFIABG)
+        private double[,,] CalculateDXYZABG(int feIndex, Point3D[] AKT, int[,] NT, double[,,] DFIABG)
         {
             var gaussPoints = Constants.GaussianAllCubePoints;
 
-            Func<Point, double>[] globalValuesGetters =
+            Func<Point3D, double>[] globalValuesGetters =
             {
                 p => p.X,
                 p => p.Y,
@@ -235,11 +354,11 @@ namespace MathLib
             for (int gd = 0; gd < 3; ++gd)                 // global coord
             {
                 var p = gaussPoints[gd];
+                var getter = globalValuesGetters[gd];
                 for (int ld = 0; ld < 3; ++ld)             // local coord
                 {
                     for (int cg = 0; cg < 27; ++cg)        // gauss points
                     {
-                        var getter = globalValuesGetters[gd];
                         double localSum = 0.0;
                         for (int i = 0; i < 20; ++i)       // functions
                         {
@@ -253,6 +372,20 @@ namespace MathLib
                     }
                 }
             }
+
+#if DEBUG
+            WriteLine($"DXYZABG (feIndex = {feIndex}): ");
+            for (int gd = 0; gd < 3; ++gd)
+            {
+                for (int ld = 0; ld < 3; ++ld)
+                {
+                    for (int cg = 0; cg < 27; ++cg)
+                    {
+                        WriteLine(result[gd, ld, cg]);
+                    }
+                }
+            }
+#endif
 
             return result;
         }
@@ -275,6 +408,39 @@ namespace MathLib
                                          , DXYZABG[0, 2, cg], DXYZABG[1, 2, cg], DXYZABG[2, 2, cg]);
             }
 
+#if DEBUG
+            WriteLine($"DJ: ");
+            for (int cg = 0; cg < 27; ++cg)
+            {
+                WriteLine(result[cg]);
+            }
+#endif
+
+            return result;
+        }
+
+        private double[,] CalculateD(double[,,] DXYZABG, int cg)
+        {
+            var result = new double[,]
+            {
+                { DXYZABG[0, 0, cg], DXYZABG[1, 0, cg], DXYZABG[2, 0, cg] },
+                { DXYZABG[0, 1, cg], DXYZABG[1, 1, cg], DXYZABG[2, 1, cg] },
+                { DXYZABG[0, 2, cg], DXYZABG[1, 2, cg], DXYZABG[2, 2, cg] }
+            };
+
+#if DEBUG
+            WriteLine($"D (cg={cg}): ");
+            for (int i = 0; i < 3; ++i)
+            {
+                for (int j = 0; j < 3; ++j)
+                {
+                    Write(result[i,j] + " ");
+                }
+
+                WriteLine("");
+            }
+#endif
+
             return result;
         }
 
@@ -284,24 +450,21 @@ namespace MathLib
             Func<int, int, int, double>[,] As =
             {
                 {
-                    (int i, int j, int cg) => l * (1.0 - v * DFIXYZ[cg, i, 0] * DFIXYZ[cg, j, 0]) + m * (DFIXYZ[cg, i, 1] * DFIXYZ[cg, j, 1] + DFIXYZ[cg, i, 2] * DFIXYZ[cg, j, 2]),
+                    (int i, int j, int cg) => (l * (1.0 - v) * DFIXYZ[cg, i, 0] * DFIXYZ[cg, j, 0]) + m * (DFIXYZ[cg, i, 1] * DFIXYZ[cg, j, 1] + DFIXYZ[cg, i, 2] * DFIXYZ[cg, j, 2]),
                     (int i, int j, int cg) => l * v * DFIXYZ[cg, i, 0] * DFIXYZ[cg, j, 1] + m * DFIXYZ[cg, i, 1] * DFIXYZ[cg, j, 0],
                     (int i, int j, int cg) => l * v * DFIXYZ[cg, i, 0] * DFIXYZ[cg, j, 2] + m * DFIXYZ[cg, i, 2] * DFIXYZ[cg, j, 0]
                 },
                 {
                     null,
-                    (int i, int j, int cg) => l * (1.0 - v * DFIXYZ[cg, i, 1] * DFIXYZ[cg, j, 1]) + m * (DFIXYZ[cg, i, 0] * DFIXYZ[cg, j, 0] + DFIXYZ[cg, i, 2] * DFIXYZ[cg, j, 2]),
+                    (int i, int j, int cg) => (l * (1.0 - v) * DFIXYZ[cg, i, 1] * DFIXYZ[cg, j, 1]) + m * (DFIXYZ[cg, i, 0] * DFIXYZ[cg, j, 0] + DFIXYZ[cg, i, 2] * DFIXYZ[cg, j, 2]),
                     (int i, int j, int cg) => l * v * DFIXYZ[cg, i, 1] * DFIXYZ[cg, j, 2] + m * DFIXYZ[cg, i, 2] * DFIXYZ[cg, j, 1]
                 },
                 {
                     null,
                     null,
-                    (int i, int j, int cg) => l * (1.0 - v * DFIXYZ[cg, i, 2] * DFIXYZ[cg, j, 2]) + m * (DFIXYZ[cg, i, 0] * DFIXYZ[cg, j, 0] + DFIXYZ[cg, i, 1] * DFIXYZ[cg, j, 1])
+                    (int i, int j, int cg) => (l * (1.0 - v) * DFIXYZ[cg, i, 2] * DFIXYZ[cg, j, 2]) + m * (DFIXYZ[cg, i, 0] * DFIXYZ[cg, j, 0] + DFIXYZ[cg, i, 1] * DFIXYZ[cg, j, 1])
                 }
             };
-            As[1, 0] = As[0, 1];
-            As[2, 0] = As[0, 2];
-            As[2, 1] = As[1, 2];
 
             var result = new double[60, 60];
             for (int ai = 0; ai < 3; ++ai)
@@ -309,6 +472,11 @@ namespace MathLib
                 for (int aj = 0; aj < 3; ++aj)
                 {
                     var a = As[ai, aj];
+                    if (a == null)
+                    {
+                        continue;
+                    }
+
                     for (int i = 0; i < 20; ++i)
                     {
                         for (int j = 0; j < 20; ++j)
@@ -321,7 +489,7 @@ namespace MathLib
                                 {
                                     for (int k = 0; k < 3; ++k)
                                     {
-                                        res += Cs[m] * Cs[n] * Cs[k] * a(i, j, cg) * DJ[cg];
+                                        res += Cs[m] * Cs[n] * Cs[k] * a(i, j, cg) * Math.Abs(DJ[cg]);
                                         ++cg;
                                     }
                                 }
@@ -333,11 +501,46 @@ namespace MathLib
                 }
             }
 
+            for (int i = 0; i < 60; ++i)
+            {
+                for (int j = 0; j < i; ++j)
+                {
+                    result[i, j] = result[j, i];
+                }
+            }
+
+#if DEBUG
+            bool symmetric = true;
+            bool diag = true;
+            for (int i = 0; i < 60; ++i)
+            {
+                if (result[i,i] < 0)
+                {
+                    diag = false;
+                }
+                for (int j = 0; j < i; ++j)
+                {
+                    if (result[i, j] != result[j, i])
+                    {
+                        symmetric = false;
+                    }
+                }
+            }
+            
+            WriteLine($"MGE ({symmetric} {diag}): ");
+            for (int i = 0; i < 60; ++i)
+            {
+                for (int j = 0; j < 60; ++j)
+                {
+                    WriteLine(result[i, j]);
+                }
+            }
+#endif
+
             return result;
         }
 
-        // TODO: calculate FE
-        private double[] CalculateFE(int feIndex, int feCount, int feCountUnderPressure, double[,,] DPSITE, int[,] ZP, int[,] NT)
+        private double[] CalculateFE(int feIndex, int feCount, int feCountUnderPressure, double[,,] DPSITE, double[,] ZP, int[,] NT, Point3D[] AKT)
         {
             var result = new double[60];
             if (feIndex < feCount - feCountUnderPressure)
@@ -346,68 +549,68 @@ namespace MathLib
                 return result;
             }
 
-            var nodes = GenerateDPSITE.GetNiTi();
-            var dPsiFunctors = new Func<int, double>[]
+            var globalCoordGetters = new Func<Point3D, double>[]
             {
-                (i) => GenerateDPSITE.DN(i, nodes[i].Item1, nodes[i].Item2),
-                (i) => GenerateDPSITE.DT(i, nodes[i].Item1, nodes[i].Item2),
+                p => p.X,
+                p => p.Y,
+                p => p.Z
             };
 
-
-            var gaussianNodes = GenerateDPSITE.GetGaussNode();
-            var derivatives = new double[3, 2];                 // dxyz / dnt, TODO: move to constants
-            for (int d1 = 0; d1 < 3; ++d1)                      // 1st dimention (x, y, z)
+            var pressedLocalPoints = Constants.PressedLocalPoints;
+            var derivatives = new double[3, 2, 9];                  // dxyz / dnt
+            for (int d1 = 0; d1 < 3; ++d1)                          // 1st dimention (x, y, z)
             {
-                for (int d2 = 0; d2 < 2; ++d2)                  // 2nd dimention (n, t)
+                for (int d2 = 0; d2 < 2; ++d2)                      // 2nd dimention (n, t)
                 {
-                    double localSum = 0.0;
-                    for (int i = 0; i < 8; ++i)
+                    for (int gp = 0; gp < 9; gp++)
                     {
-                        int coordValue = (d2 == 0 ? nodes[i].Item1 : nodes[i].Item2);
-                        localSum += coordValue * dPsiFunctors[d2](i);
-                    }
+                        double localSum = 0.0;
+                        for (int i = 0; i < 8; ++i)
+                        {
+                            var globalPoint = AKT[NT[pressedLocalPoints[i], feIndex]];
+                            double coordValue = globalCoordGetters[d1](globalPoint);
+                            localSum += coordValue * DPSITE[gp, d2, i];
+                        }
 
-                    derivatives[d1, d2] = localSum;
+                        derivatives[d1, d2, gp] = localSum;
+                    }
                 }
             }
 
-            var zpMap = new Dictionary<int, int>();
+            var zpMap = new Dictionary<double, int>();
             for (int i = 0; i < ZP.GetLength(0); i++)
             {
                 zpMap.Add(ZP[i, 0], i);                    // global point index - index in ZP
             }
 
-            //var pFunctors = new Func<int, double>[]
-            //{
-            //    (li) => 0,                              // Px
-            //    (li) => 0,                              // Py
-            //    (li) =>    // Pz - force applied to that point according to ZP
-            //};
-
-            int startIndex = 60 - 24 + 2;               // third (for Z-coord) starting from last 24 in all FE (60)
+            var gaussianNodes = GenerateDPSITE.GetGaussNode();
+            int startIndex = 60 - 24 + 2;                  // third (for Z-coord) starting from last 24 in all FE (60)
             var Cs = Constants.Cs;
             for (int i = 0; i < 8; ++i)
             {
-                int cg = 0;
                 double localSum = 0.0;
                 for (int m = 0; m < 3; ++m)
                 {
-                    for (int n = 2; n < 3; ++n)
+                    for (int n = 0; n < 3; ++n)
                     {
-                        localSum += Cs[m] * Cs[n] * GenerateDPSITE.PHIs[i](gaussianNodes[cg, 0], gaussianNodes[cg, 1]);
-                        ++cg;
+                        int cg = m * 3 + n;
+                        localSum += Cs[m] * Cs[n] * Pressure * (derivatives[0, 0, cg] * derivatives[1, 1, cg] - derivatives[1, 0, cg] * derivatives[0, 1, cg]) * GenerateDPSITE.PHIs[i](gaussianNodes[cg, 0], gaussianNodes[cg, 1]);
                     }
                 }
 
-                result[startIndex] = localSum * ZP[zpMap[NT[i + 12, feIndex]], 2] * (derivatives[0, 0] * derivatives[1, 1] - derivatives[1, 0] * derivatives[0, 1]);
+                result[startIndex] = localSum;
                 startIndex += 3;
             }
 
-
-
+#if DEBUG
+            WriteLine($"FE: ");
+            for (int i = 0; i < 60; ++i)
+            {
+                WriteLine(result[i]);
+            }
+#endif
 
             return result;
-
         }
 
         private void FixMG(double[,] MG, int[] ZU)
@@ -492,16 +695,83 @@ namespace MathLib
             return x;
         }
 
-        private Point[] AddTranslation(Point[] AKT, double[] U)
+        private Point3D[] AddTranslation(Point3D[] AKT, double[] U)
         {
-            var result = new Point[AKT.Length];
+            var result = new Point3D[AKT.Length];
             for (int i = 0; i < AKT.Length; ++i)
             {
-                result[i] = new Point( AKT[i].X + U[i * 3], AKT[i].Y + U[i * 3 + 1], AKT[i].Z + U[i * 3 + 2]);
+                result[i] = new Point3D()
+                {
+                    X = AKT[i].X + U[i * 3],
+                    Y = AKT[i].Y + U[i * 3 + 1],
+                    Z = AKT[i].Z + U[i * 3 + 2]
+                };
             }
 
             return result;
         }
+
+        private void GenerateAndAddShapeToCollection(Point3D[] points, int[] pointIndexes, Brush vertColor, Visual3DCollection collection)
+        {
+            // add all points (vertices)
+            foreach (var point in points)
+            {
+                var vert = CreateVertex(point, vertColor);
+                collection.Add(vert);
+            }
+
+            // TODO: add lines
+            // add all lines (edges)
+            //for (int i = 0; i < pointIndexes.Length; i += 2)
+            //{
+            //    var line = CreateLine(points[pointIndexes[i]], points[pointIndexes[i + 1]]);
+            //    collection.Add(line);
+            //}
+        }
+
+        private PipeVisual3D CreateLine(Point3D start, Point3D end)
+        {
+            var line = new PipeVisual3D();
+
+            line.Point1 = start;
+            line.Point2 = end;
+            line.InnerDiameter = LineInnerDiameter;
+            line.Diameter = LineDiameter;
+            line.Fill = LineFill;
+
+            return line;
+        }
+
+        private SphereVisual3D CreateVertex(Point3D center, Brush fill)
+        {
+            var vert = new SphereVisual3D();
+
+            vert.Center = center;
+            vert.Radius = VertRadius;
+            vert.Fill = fill;
+
+            return vert;
+        }
+
+        private static string Id { get; } = DateTime.Now.ToString().Replace(" ", "_").Replace(":", "-");
+
+        private void WriteLine<T>(T str)
+        {
+            using (var s = new System.IO.StreamWriter(System.IO.Path.Combine("../../", "test-" + Id + ".txt"), true))
+            {
+                s.WriteLine(str);
+                s.Flush();
+            }
+        }
+
+        private void Write(string str)
+        {
+            using (var s = new System.IO.StreamWriter(System.IO.Path.Combine("../../", "test-" + Id + ".txt"), true))
+            {
+                s.Write(str);
+                s.Flush();
+            }
+        } */
 
 
     }

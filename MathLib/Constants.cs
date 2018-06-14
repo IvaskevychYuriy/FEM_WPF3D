@@ -15,7 +15,6 @@ namespace MathLib
 
         public static Point3D[] GaussianStandardCubePoints { get; } = new Point3D[20]
         {
-            // NaN version
             // first 8
             new Point3D(-1, 1, -1),
             new Point3D(1, 1, -1),
@@ -39,30 +38,6 @@ namespace MathLib
             new Point3D(1, 0, 1),
             new Point3D(0, -1, 1),
             new Point3D(-1, 0, 1)
-
-            //// first 8
-            //new Point3D(-1, -1, -1),
-            //new Point3D(1, -1, -1),
-            //new Point3D(1, 1, -1),
-            //new Point3D(-1, 1, -1),
-            //new Point3D(-1, -1, 1),
-            //new Point3D(1, -1, 1),
-            //new Point3D(1, 1, 1),
-            //new Point3D(-1, 1, 1),
-
-            //// rest 12
-            //new Point3D(0, -1, -1),
-            //new Point3D(1, 0, -1),
-            //new Point3D(0, 1, -1),
-            //new Point3D(-1, 0, -1),
-            //new Point3D(-1, -1, 0),
-            //new Point3D(1, -1, 0),
-            //new Point3D(1, 1, 0),
-            //new Point3D(-1, 1, 0),
-            //new Point3D(0, -1, 1),
-            //new Point3D(1, 0, 1),
-            //new Point3D(0, 1, 1),
-            //new Point3D(-1, 0, 1)
         };
 
         static Constants()
