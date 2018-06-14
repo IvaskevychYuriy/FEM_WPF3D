@@ -551,14 +551,7 @@ namespace WpfApp1
                 // current element not under force
                 return result;
             }
-
-            var nodes = GenerateDPSITE.GetNiTi();
-            var dPsiFunctors = new Func<int, double>[]
-            {
-                (i) => GenerateDPSITE.DN(i, nodes[i].Item1, nodes[i].Item2),
-                (i) => GenerateDPSITE.DT(i, nodes[i].Item1, nodes[i].Item2),
-            };
-
+            
             var globalCoordGetters = new Func<Point3D, double>[]
             {
                 p => p.X,
@@ -567,7 +560,6 @@ namespace WpfApp1
             };
 
             var pressedLocalPoints = Constants.PressedLocalPoints;
-            var gaussianNodes = GenerateDPSITE.GetGaussNode();
             var derivatives = new double[3, 2, 9];                  // dxyz / dnt
             for (int d1 = 0; d1 < 3; ++d1)                          // 1st dimention (x, y, z)
             {
@@ -594,6 +586,7 @@ namespace WpfApp1
                 zpMap.Add(ZP[i, 0], i);                    // global point index - index in ZP
             }
 
+            var gaussianNodes = GenerateDPSITE.GetGaussNode();
             int startIndex = 60 - 24 + 2;                  // third (for Z-coord) starting from last 24 in all FE (60)
             var Cs = Constants.Cs;
             for (int i = 0; i < 8; ++i)
