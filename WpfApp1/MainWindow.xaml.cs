@@ -23,6 +23,7 @@ namespace WpfApp1
         private const double v = 0.3;
         private const double l = E / ((1 + v) * (1 - 2 * v));
         private const double m = E / (2 * (1 + v));
+        private const double Pressure = -0.1;
 
         private readonly double LargeCoefficient = Math.Pow(10, 20);
 
@@ -30,10 +31,10 @@ namespace WpfApp1
         {
             InitializeComponent();
 
-            const int nx = 2;
-            const int ny = 2;
-            const int nz = 2;
-
+            const int nx = 1;
+            const int ny = 1;
+            const int nz = 1;
+                           
             const int ax = 1;
             const int ay = 1;
             const int az = 1;
@@ -142,7 +143,7 @@ namespace WpfApp1
             {
                 ZP[i, 0] = startPoint + i;
                 ZP[i, 1] = 5;                                       // 5 is top most (6th) plane of 1x1 cube
-                ZP[i, 2] = 0.01;                                       // force applied
+                ZP[i, 2] = Pressure;
             }
 
 #if DEBUG
@@ -167,7 +168,7 @@ namespace WpfApp1
         // functions for dimensions for i >= 8
         private Func<Point3D, Point3D, double>[] Dphis2 = new Func<Point3D, Point3D, double>[3]
         {
-            (Point3D p, Point3D pi) => //(1 + pi.Y * p.Y) * (1 + pi.Z * p.Z) * (pi.Y * pi.Z * pi.Z + pi.X * (2 * pi.Y * pi.Z * pi.Z * p.X - 1) + pi.X * pi.X * (pi.Z * pi.Z * p.Y + pi.Y * pi.Y * p.Z)) / -4.0
+            (Point3D p, Point3D pi) =>
             0.25 *
                 (1 + pi.Y * p.Y) *
                 (1 + pi.Z * p.Z) *
@@ -175,14 +176,14 @@ namespace WpfApp1
                   2 * p.X * Math.Pow((pi.Y * pi.Z), 2) * (1 + p.X * pi.X))
             
             ,
-            (Point3D p, Point3D pi) => //(1 + pi.X * p.X) * (1 + pi.Z * p.Z) * (pi.X * pi.Z * pi.Z + pi.Y * pi.Y * pi.Z * pi.Z * p.X + pi.Y * (2 * pi.X * pi.Z * pi.Z * p.Y - 1) + pi.X * pi.Y * pi.Y * pi.Y * p.Z) / -4.0
+            (Point3D p, Point3D pi) =>
             0.25 *
                 (1 + pi.X * p.X) *
                 (1 + pi.Z * p.Z) *
                 (pi.Y * (1 - Math.Pow((p.X * pi.Y * pi.Z), 2) - Math.Pow((p.Y * pi.X * pi.Z), 2) - Math.Pow((p.Z * pi.X * pi.Y), 2)) -
                   2 * p.Y * Math.Pow((pi.X * pi.Z), 2) * (1 + p.Y * pi.Y))
             ,
-            (Point3D p, Point3D pi) => //(1 + pi.X * p.X) * (1 + pi.Y * p.Y) * (pi.Z * (pi.Y * pi.Z * pi.Z * p.X - 1) + pi.X * pi.Z * pi.Z * pi.Z * p.Y + pi.X * pi.Y * pi.Y * (1 + 2 * pi.Z * p.Z)) / -4.0
+            (Point3D p, Point3D pi) =>
             0.25 *
                 (1 + pi.X * p.X) *
                 (1 + pi.Y * p.Y) *
@@ -308,19 +309,13 @@ namespace WpfApp1
             var result = new double[27, 20, 3];
             for (int cg = 0; cg < 27; ++cg)             // gauss points
             {
-                var p = gaussPoints[cg];
-                //for (int d = 0; d < 3; ++d)             // dimension
+                var p = gaussPoints[cg];          
                 {
                     for (int i = 0; i < 20; ++i)        // functions
                     {
-                        //var pi = AKT[NT[i, feIndex]];   // use NT to lookup global point using feIndex and i
-                        //var funcArray = i < 8 ? Dphis1 : Dphis2;
-                        //result[cg, i, d] = funcArray[d](p, pi);
-
-                        // uncomment to unroll NaN version
                         var b = new double[] { DFIABG[cg, 0, i], DFIABG[cg, 1, i], DFIABG[cg, 2, i] };
                         var res = GaussianElimination(CalculateD(DXYZABG, cg), b);
-                        for (int d = 0; d < 3; ++d)
+                        for (int d = 0; d < 3; ++d)     // dimension
                         {
                             result[cg, i, d] = res[d];
                         }
@@ -473,9 +468,6 @@ namespace WpfApp1
                     (int i, int j, int cg) => (l * (1.0 - v) * DFIXYZ[cg, i, 2] * DFIXYZ[cg, j, 2]) + m * (DFIXYZ[cg, i, 0] * DFIXYZ[cg, j, 0] + DFIXYZ[cg, i, 1] * DFIXYZ[cg, j, 1])
                 }
             };
-            As[1, 0] = As[0, 1];
-            As[2, 0] = As[0, 2];
-            As[2, 1] = As[1, 2];
 
             var result = new double[60, 60];
             for (int ai = 0; ai < 3; ++ai)
@@ -550,11 +542,7 @@ namespace WpfApp1
 
             return result;
         }
-
         
-
-
-        // TODO: calculate FE
         private double[] CalculateFE(int feIndex, int feCount, int feCountUnderPressure, double[,,] DPSITE, double[,] ZP, int[,] NT, Point3D[] AKT)
         {
             var result = new double[60];
@@ -580,10 +568,10 @@ namespace WpfApp1
 
             var pressedLocalPoints = Constants.PressedLocalPoints;
             var gaussianNodes = GenerateDPSITE.GetGaussNode();
-            var derivatives = new double[3, 2, 9];                 // dxyz / dnt, TODO: move to constants
-            for (int d1 = 0; d1 < 3; ++d1)                      // 1st dimention (x, y, z)
+            var derivatives = new double[3, 2, 9];                  // dxyz / dnt
+            for (int d1 = 0; d1 < 3; ++d1)                          // 1st dimention (x, y, z)
             {
-                for (int d2 = 0; d2 < 2; ++d2)                  // 2nd dimention (n, t)
+                for (int d2 = 0; d2 < 2; ++d2)                      // 2nd dimention (n, t)
                 {
                     for (int gp = 0; gp < 9; gp++)
                     {
@@ -606,9 +594,8 @@ namespace WpfApp1
                 zpMap.Add(ZP[i, 0], i);                    // global point index - index in ZP
             }
 
-            int startIndex = 60 - 24 + 2;               // third (for Z-coord) starting from last 24 in all FE (60)
+            int startIndex = 60 - 24 + 2;                  // third (for Z-coord) starting from last 24 in all FE (60)
             var Cs = Constants.Cs;
-            double presure = -0.3; // TODO: replace with ZP values
             for (int i = 0; i < 8; ++i)
             {
                 double localSum = 0.0;
@@ -617,7 +604,7 @@ namespace WpfApp1
                     for (int n = 0; n < 3; ++n)
                     {
                         int cg = m * 3 + n;
-                        localSum += Cs[m] * Cs[n] * presure * (derivatives[0, 0, cg] * derivatives[1, 1, cg] - derivatives[1, 0, cg] * derivatives[0, 1, cg]) * GenerateDPSITE.PHIs[i](gaussianNodes[cg, 0], gaussianNodes[cg, 1]);
+                        localSum += Cs[m] * Cs[n] * Pressure * (derivatives[0, 0, cg] * derivatives[1, 1, cg] - derivatives[1, 0, cg] * derivatives[0, 1, cg]) * GenerateDPSITE.PHIs[i](gaussianNodes[cg, 0], gaussianNodes[cg, 1]);
                     }
                 }
 
